@@ -1,10 +1,7 @@
-import express from "express";
-import postRouter from "./routes/posts.js";
+import { createApp } from "./app.js";
 
-const app = express();
+const app = createApp();
 const port = process.env.PORT || 3000;
-
-app.use("/posts", postRouter);
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
