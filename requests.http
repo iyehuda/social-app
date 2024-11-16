@@ -1,1 +1,8 @@
-GET http://localhost:3000/
+# Add post
+POST http://localhost:3000/posts
+Content-Type: application/json
+
+{
+    "message": "This is a test post",
+    "sender": "testuser@example.com"
+}
