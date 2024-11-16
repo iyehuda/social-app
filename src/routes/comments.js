@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addComment, getComments, getCommentById, updateCommentById } from "../controllers/comments.js";
+import { addComment, getComments, getCommentById, updateCommentById, deleteCommentById  } from "../controllers/comments.js";
 
 const commentRouter = new Router();
 
@@ -78,6 +78,21 @@ commentRouter.put("/:id", async (req, res) => {
     } catch (err) {
         console.error("Error in updating comment:", err);
         return res.status(500).json({ error: "Failed to update comment" });
+    }
+});
+
+commentRouter.delete("/:id", async (req, res) => {
+    try {
+        const comment = await deleteCommentById(req.params.id);
+
+        if (!comment) {
+            return res.status(404).json({ error: "Comment not found" });
+        }
+
+        return res.status(204).send();
+    } catch (err) {
+        console.error("Error in deleting comment:", err);
+        return res.status(500).json({ error: "Failed to delete comment" });
     }
 });
 

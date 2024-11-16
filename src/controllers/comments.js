@@ -47,3 +47,11 @@ export async function updateCommentById(id, { message }) {
 
     return comment;
 }
+
+export async function deleteCommentById(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return null;
+    }
+
+    return await Comment.findByIdAndDelete(id);
+}
