@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import Post from "../models/post.js";
 
 export async function addPost(post) {
-    return (await Post.create(post)).toJSON();
+    return await Post.create(post);
 }
 
 export async function getPosts(filters) {
@@ -12,7 +12,7 @@ export async function getPosts(filters) {
         query.sender = filters.sender.toString();
     }
 
-    return (await Post.find(query)).map((post) => post.toJSON());
+    return await Post.find(query);
 }
 
 export async function getPostById(id) {
@@ -20,11 +20,16 @@ export async function getPostById(id) {
         return null;
     }
 
-    const post = await Post.findById(id);
+    return await Post.findById(id);
+}
 
-    if (!post) {
-        return null;
+export async function updatePostById(id, { message }) {
+    const post = await getPostById(id);
+
+    if (post) {
+        post.message = message;
+        post.save();
     }
 
-    return post.toJSON();
+    return post;
 }
