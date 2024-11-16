@@ -2,7 +2,6 @@ import Comment from "../models/comment.js";
 import { getPostById } from "./posts.js";
 
 export async function addComment(comment) {
-    // Verify that the post exists before creating the comment
     const post = await getPostById(comment.post);
     if (!post) {
         throw new Error("Post not found");
@@ -10,3 +9,18 @@ export async function addComment(comment) {
 
     return await Comment.create(comment);
 }
+
+export async function getComments(filters) {
+    const query = {};
+
+    if (filters.post) {
+        query.post = filters.post.toString();
+    }
+
+    if (filters.sender) {
+        query.sender = filters.sender.toString();
+    }
+
+    return await Comment.find(query).populate('post', 'message sender');
+}
+
