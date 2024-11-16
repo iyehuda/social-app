@@ -29,7 +29,8 @@ postRouter.post("/", async (req, res) => {
 
 postRouter.get("/", async (req, res) => {
     try {
-        const posts = await getPosts();
+        const { sender } = req.query;
+        const posts = await getPosts({ sender });
 
         return res.json(posts);
     } catch (err) {
