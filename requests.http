@@ -60,3 +60,12 @@ GET http://localhost:3000/comments?sender=charlie@example.com
 ###
 # Get a single comment by ID
 GET http://localhost:3000/comments/67390276d8eff8c8bf2b4a88
+
+###
+# Update a comment
+PUT http://localhost:3000/comments/6739070f58f9b47309f98636
+Content-Type: application/json
+
+{
+  "message": "This is an updated comment"
+}
