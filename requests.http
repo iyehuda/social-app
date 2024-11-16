@@ -11,3 +11,8 @@ Content-Type: application/json
 
 # Get all posts
 GET http://localhost:3000/posts
+
+###
+
+# Get a single post by ID
+GET http://localhost:3000/posts/6738b7b2944556561a86110a
