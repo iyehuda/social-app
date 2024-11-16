@@ -31,3 +31,15 @@ Content-Type: application/json
 {
     "message": "This is a different post"
 }
+
+###
+
+# Add comment to a post
+POST http://localhost:3000/comments
+Content-Type: application/json
+
+{
+  "post": "6738b7b2944556561a86110a",
+  "message": "This is a test comment",
+  "sender": "commenter@example.com"
+}
