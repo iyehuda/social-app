@@ -6,3 +6,8 @@ Content-Type: application/json
     "message": "This is a test post",
     "sender": "testuser@example.com"
 }
+
+###
+
+# Get all posts
+GET http://localhost:3000/posts
