@@ -21,3 +21,13 @@ GET http://localhost:3000/posts/6738b7b2944556561a86110a
 
 # Get posts by sender
 GET http://localhost:3000/posts?sender=testuser@example.com
+
+###
+
+# Update a post
+PUT http://localhost:3000/posts/6738b7b2944556561a86110a
+Content-Type: application/json
+
+{
+    "message": "This is a different post"
+}
