@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { addComment, getComments, getCommentById, updateCommentById } from "../controllers/comments.js";
 
+
 const commentRouter = new Router();
 
 commentRouter.post("/", async (req, res) => {
