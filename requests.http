@@ -43,3 +43,17 @@ Content-Type: application/json
   "message": "This is a test comment",
   "sender": "commenter@example.com"
 }
+
+###
+
+# Get all comments
+GET http://localhost:3000/comments
+
+###
+# Get comments for a specific post
+GET http://localhost:3000/comments?post=6738b7b2944556561a86110a
+
+###
+# Get comments by a specific sender
+GET http://localhost:3000/comments?sender=charlie@example.com
+
