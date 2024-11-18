@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addComment, getComments } from "../controllers/comments.js";
+import { addComment, getComments, getCommentById } from "../controllers/comments.js";
 
 
 const commentRouter = new Router();
@@ -38,6 +38,21 @@ commentRouter.get("/", async (req, res) => {
     } catch (err) {
         console.error("Error in fetching comments:", err);
         return res.status(500).json({ error: "Failed to fetch comments" });
+    }
+});
+
+commentRouter.get("/:id", async (req, res) => {
+    try {
+        const comment = await getCommentById(req.params.id);
+
+        if (!comment) {
+            return res.status(404).json({ error: "Comment not found" });
+        }
+
+        return res.json(comment);
+    } catch (err) {
+        console.error("Error in fetching comment:", err);
+        return res.status(500).json({ error: "Failed to fetch comment" });
     }
 });
 

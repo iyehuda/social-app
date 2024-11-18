@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Comment from "../models/comment.js";
 import { getPostById } from "./posts.js";
 
@@ -24,3 +25,12 @@ export async function getComments(filters) {
 
     return await Comment.find(query).populate('post', 'message sender');
 }
+
+export async function getCommentById(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return null;
+    }
+
+    return await Comment.findById(id).populate('post', 'message sender');
+}
+

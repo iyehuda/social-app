@@ -57,3 +57,6 @@ GET http://localhost:3000/comments?post=6738b7b2944556561a86110a
 # Get comments by a specific sender
 GET http://localhost:3000/comments?sender=charlie@example.com
 
+###
+# Get a single comment by ID
+GET http://localhost:3000/comments/67390276d8eff8c8bf2b4a88
