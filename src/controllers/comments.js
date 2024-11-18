@@ -2,6 +2,7 @@ import Comment from "../models/comment.js";
 import { getPostById } from "./posts.js";
 
 export async function addComment(comment) {
+
     const post = await getPostById(comment.post);
     if (!post) {
         throw new Error("Post not found");
@@ -23,4 +24,3 @@ export async function getComments(filters) {
 
     return await Comment.find(query).populate('post', 'message sender');
 }
-
