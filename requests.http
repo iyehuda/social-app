@@ -3,7 +3,7 @@ POST http://localhost:3000/posts
 Content-Type: application/json
 
 {
-    "message": "This is a test post",
+    "message": "This is a test post",https://github.com/iyehuda/adavanced-app-dev-task-1/pull/9/conflict?name=requests.http&ancestor_oid=a6ed935eb71d47d304407b581332a208e59e48e9&base_oid=c6d08cd154ccc9aec3354cf54bb2db95d5bd5ce2&head_oid=8ffa71182114cfdb9cbb1b8ff7885c8afc5f64d0
     "sender": "testuser@example.com"
 }
 
