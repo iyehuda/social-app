@@ -34,3 +34,17 @@ export async function getCommentById(id) {
     return await Comment.findById(id).populate('post', 'message sender');
 }
 
+export async function updateCommentById(id, { message }) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return null;
+    }
+
+    const comment = await Comment.findById(id);
+
+    if (comment) {
+        comment.message = message;
+        await comment.save();
+    }
+
+    return comment;
+}

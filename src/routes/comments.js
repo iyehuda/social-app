@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addComment, getComments, getCommentById } from "../controllers/comments.js";
+import { addComment, getComments, getCommentById, updateCommentById } from "../controllers/comments.js";
 
 
 const commentRouter = new Router();
@@ -55,5 +55,32 @@ commentRouter.get("/:id", async (req, res) => {
         return res.status(500).json({ error: "Failed to fetch comment" });
     }
 });
+
+commentRouter.put("/:id", async (req, res) => {
+    const { message, ...extra } = req.body;
+    const extraFields = Object.keys(extra);
+
+    if (extraFields.length > 0) {
+        return res.status(400).json({ error: `Unexpected extra fields: ${extraFields.join(", ")}` });
+    }
+
+    if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+    }
+
+    try {
+        const comment = await updateCommentById(req.params.id, { message });
+
+        if (!comment) {
+            return res.status(404).json({ error: "Comment not found" });
+        }
+
+        return res.json(comment);
+    } catch (err) {
+        console.error("Error in updating comment:", err);
+        return res.status(500).json({ error: "Failed to update comment" });
+    }
+});
+
 
 export default commentRouter;
