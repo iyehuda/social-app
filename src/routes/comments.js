@@ -1,23 +1,28 @@
 import { Router } from "express";
-import { addComment, getComments, getCommentById, updateCommentById, deleteCommentById  } from "../controllers/comments.js";
-
+import { createValidator } from "express-joi-validation";
+import {
+    addComment,
+    getComments,
+    getCommentById,
+    updateCommentById,
+    deleteCommentById,
+} from "../controllers/comments.js";
+import Joi from "joi";
 
 const commentRouter = new Router();
+const validator = createValidator();
 
-commentRouter.post("/", async (req, res) => {
-    const { post, message, sender, ...extra } = req.body;
-
-    const extraFields = Object.keys(extra);
-    if (extraFields.length > 0) {
-        return res.status(400).json({ error: `Unexpected extra fields: ${extraFields.join(", ")}` });
-    }
-
-    if (!post || !message || !sender) {
-        return res.status(400).json({ error: "Post ID, message and sender are required" });
-    }
+const newCommentSchema = Joi.object({
+    post: Joi.string().required(),
+    message: Joi.string().required(),
+    sender: Joi.string().required(),
+});
+commentRouter.post("/", validator.body(newCommentSchema), async (req, res) => {
+    const { post, message, sender } = req.body;
 
     try {
         const newComment = await addComment({ post, sender, message });
+
         return res.status(201).json(newComment);
     } catch (err) {
         console.error("Error in creating comment:", err);
@@ -30,10 +35,15 @@ commentRouter.post("/", async (req, res) => {
     }
 });
 
-commentRouter.get("/", async (req, res) => {
+const getCommentsSchema = Joi.object({
+    post: Joi.string().optional(),
+    sender: Joi.string().optional(),
+});
+commentRouter.get("/", validator.query(getCommentsSchema), async (req, res) => {
     try {
         const { post, sender } = req.query;
         const comments = await getComments({ post, sender });
+
         return res.json(comments);
     } catch (err) {
         console.error("Error in fetching comments:", err);
@@ -56,17 +66,11 @@ commentRouter.get("/:id", async (req, res) => {
     }
 });
 
-commentRouter.put("/:id", async (req, res) => {
-    const { message, ...extra } = req.body;
-    const extraFields = Object.keys(extra);
-
-    if (extraFields.length > 0) {
-        return res.status(400).json({ error: `Unexpected extra fields: ${extraFields.join(", ")}` });
-    }
-
-    if (!message) {
-        return res.status(400).json({ error: "Message is required" });
-    }
+const updateCommentSchema = Joi.object({
+    message: Joi.string().required(),
+});
+commentRouter.put("/:id", validator.body(updateCommentSchema), async (req, res) => {
+    const { message } = req.body;
 
     try {
         const comment = await updateCommentById(req.params.id, { message });
@@ -96,6 +100,5 @@ commentRouter.delete("/:id", async (req, res) => {
         return res.status(500).json({ error: "Failed to delete comment" });
     }
 });
-
 
 export default commentRouter;

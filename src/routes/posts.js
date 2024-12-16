@@ -1,23 +1,20 @@
 import { Router } from "express";
 import { addPost, getPostById, getPosts, updatePostById } from "../controllers/posts.js";
+import { createValidator } from "express-joi-validation";
+import Joi from "joi";
 
 const postRouter = new Router();
+const validator = createValidator();
 
-postRouter.post("/", async (req, res) => {
-    const { message, sender, ...extra } = req.body;
-
-    const extraFields = Object.keys(extra);
-
-    if (extraFields.length > 0) {
-        return res.status(400).json({ error: `Unexpected extra fields: ${extraFields.join(", ")}` });
-    }
-
-    if (!message || !sender) {
-        return res.status(400).json({ error: "Message and sender are required" });
-    }
+const newPostSchema = Joi.object({
+    message: Joi.string().required(),
+    sender: Joi.string().required(),
+});
+postRouter.post("/", validator.body(newPostSchema), async (req, res) => {
+    const { message, sender } = req.body;
 
     try {
-        const newPost = await addPost({ sender, message });
+        const newPost = await addPost({ message, sender });
 
         return res.status(201).json(newPost);
     } catch (err) {
@@ -27,7 +24,10 @@ postRouter.post("/", async (req, res) => {
     }
 });
 
-postRouter.get("/", async (req, res) => {
+const getPostsSchema = Joi.object({
+    sender: Joi.string().optional(),
+});
+postRouter.get("/", validator.query(getPostsSchema), async (req, res) => {
     try {
         const { sender } = req.query;
         const posts = await getPosts({ sender });
@@ -50,26 +50,19 @@ postRouter.get("/:id", async (req, res) => {
     return res.json(post);
 });
 
-postRouter.put("/:id", async (req, res) => {
-    const { message, ...extra } = req.body;
-    const extraFields = Object.keys(extra);
-
-    if (extraFields.length > 0) {
-        return res.status(400).json({ error: `Unexpected extra fields: ${extraFields.join(", ")}` });
-    }
-
-    if (!message) {
-        return res.status(400).json({ error: "Message is required" });
-    }
+const updatePostSchema = Joi.object({
+    message: Joi.string().required(),
+});
+postRouter.put("/:id", validator.body(updatePostSchema), async (req, res) => {
+    const { message } = req.body;
 
     try {
-
         const post = await updatePostById(req.params.id, { message });
-        
+
         if (!post) {
             return res.status(404).json({ error: "Post not found" });
         }
-        
+
         return res.json(post);
     } catch (err) {
         console.error("Error in updating post:", err);
