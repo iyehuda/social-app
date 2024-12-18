@@ -1,35 +1,35 @@
-import mongoose from "mongoose";
 import Post from "../models/post.js";
 
-export async function addPost(post) {
-    return await Post.create(post);
+export async function addPost(req, res) {
+    const post = await Post.create(req.body);
+
+    res.status(201).json(post);
 }
 
-export async function getPosts(filters) {
-    const query = {};
+export async function getPosts(req, res) {
+    const posts = await Post.find(req.query);
 
-    if (filters.sender) {
-        query.sender = filters.sender.toString();
+    res.json(posts);
+}
+
+export async function getPostById(req, res) {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+        res.status(404).json({ error: "Post not found" });
+    } else {
+        res.json(post);
     }
-
-    return await Post.find(query);
 }
 
-export async function getPostById(id) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return null;
-    }
+export async function updatePostById(req, res) {
+    const post = await Post.findById(req.params.id);
 
-    return await Post.findById(id);
-}
-
-export async function updatePostById(id, { message }) {
-    const post = await getPostById(id);
-
-    if (post) {
-        post.message = message;
+    if (!post) {
+        res.status(404).json({ error: "Post not found" });
+    } else {
+        post.message = req.body.message;
         post.save();
+        res.json(post);
     }
-
-    return post;
 }

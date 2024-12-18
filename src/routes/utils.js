@@ -1,3 +1,4 @@
+import Joi from "joi";
 import mongoose from "mongoose";
 
 export function validObjectId(value, helpers) {
@@ -7,3 +8,5 @@ export function validObjectId(value, helpers) {
 
     return value;
 }
+
+export const idParamSchema = Joi.object({ id: Joi.string().required().custom(validObjectId) });

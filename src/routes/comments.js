@@ -8,7 +8,7 @@ import {
     updateCommentById,
     deleteCommentById,
 } from "../controllers/comments.js";
-import { validObjectId } from "./utils.js";
+import { idParamSchema, validObjectId } from "./utils.js";
 
 const commentRouter = new Router();
 const validator = createValidator();
@@ -25,7 +25,6 @@ const getCommentsSchema = Joi.object({
 const updateCommentSchema = Joi.object({
     message: Joi.string().required(),
 });
-const idParamSchema = Joi.object({ id: Joi.string().required().custom(validObjectId) });
 
 commentRouter
     .route("/")
