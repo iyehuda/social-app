@@ -1,58 +1,55 @@
-import mongoose from "mongoose";
 import Comment from "../models/comment.js";
 import { getPostById } from "./posts.js";
 
-export async function addComment(comment) {
+export async function addComment(req, res) {
+    const comment = req.body;
 
     const post = await getPostById(comment.post);
+
     if (!post) {
-        throw new Error("Post not found");
+        res.status(404).json({ error: "Post does not exist" });
+    } else {
+        const newComment = await Comment.create(comment);
+        res.status(201).json(newComment);
     }
-
-    return await Comment.create(comment);
 }
 
-export async function getComments(filters) {
-    const query = {};
+export async function getComments(req, res) {
+    const comments = await Comment.find(req.query);
 
-    if (filters.post) {
-        query.post = filters.post.toString();
-    }
-
-    if (filters.sender) {
-        query.sender = filters.sender.toString();
-    }
-
-    return await Comment.find(query).populate('post', 'message sender');
+    return res.json(comments);
 }
 
-export async function getCommentById(id) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return null;
-    }
+export async function getCommentById(req, res) {
+    const comment = await Comment.findById(req.params.id);
 
-    return await Comment.findById(id).populate('post', 'message sender');
+    if (!comment) {
+        res.status(404).json({ error: "Comment not found" });
+    } else {
+        res.json(comment);
+    }
 }
 
-export async function updateCommentById(id, { message }) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return null;
-    }
+export async function updateCommentById(req, res) {
+    const comment = await Comment.findById(req.params.id);
 
-    const comment = await Comment.findById(id);
-
-    if (comment) {
-        comment.message = message;
+    if (!comment) {
+        res.status(404).json({ error: "Comment not found" });
+    } else {
+        comment.message = req.body.message;
         await comment.save();
-    }
 
-    return comment;
+        res.json(comment);
+    }
 }
 
-export async function deleteCommentById(id) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return null;
-    }
+export async function deleteCommentById(req, res) {
+    const { id } = req.params;
+    const comment = await Comment.findByIdAndDelete(id);
 
-    return await Comment.findByIdAndDelete(id);
+    if (!comment) {
+        res.status(404).json({ error: "Comment not found" });
+    } else {
+        res.status(204).send();
+    }
 }
