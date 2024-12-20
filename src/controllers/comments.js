@@ -1,23 +1,13 @@
 import Comment from "../models/comment.js";
-import { getPostById } from "./posts.js";
 
 export async function addComment(req, res) {
-    const comment = req.body;
-
-    const post = await getPostById(comment.post);
-
-    if (!post) {
-        res.status(404).json({ error: "Post does not exist" });
-    } else {
-        const newComment = await Comment.create(comment);
-        res.status(201).json(newComment);
-    }
+    const comment = await Comment.create(req.body);
+    res.status(201).json(comment);
 }
 
 export async function getComments(req, res) {
     const comments = await Comment.find(req.query);
-
-    return res.json(comments);
+    res.json(comments);
 }
 
 export async function getCommentById(req, res) {

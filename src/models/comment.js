@@ -1,10 +1,19 @@
 import { Schema, model } from "mongoose";
+import Post from "./post.js";
 
 const commentSchema = new Schema({
-    post: { type: Schema.Types.ObjectId, ref: 'Post', required: true },
+    post: { type: Schema.Types.ObjectId, ref: "Post", required: true },
     sender: { type: String, required: true },
     message: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+});
+
+commentSchema.pre("save", { isAsync: true }, async function () {
+    const post = await Post.findById(this.post);
+
+    if (!post) {
+        throw Object.assign(new Error("Post not found"), { status: 404 });
+    }
 });
 
 export default model("Comment", commentSchema);
