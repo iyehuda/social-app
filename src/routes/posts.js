@@ -1,10 +1,11 @@
 import Joi from "joi";
+import PostsController from "../controllers/posts.js";
 import { Router } from "express";
 import { celebrate, Segments } from "celebrate";
-import { addPost, getPostById, getPosts, updatePostById } from "../controllers/posts.js";
 import { idParamSchema } from "./utils.js";
 
 const postRouter = new Router();
+const controller = new PostsController();
 
 const newPostSchema = {
     [Segments.BODY]: Joi.object({
@@ -15,22 +16,22 @@ const newPostSchema = {
 const getPostsSchema = {
     [Segments.QUERY]: Joi.object({
         sender: Joi.string().optional(),
-    })
+    }),
 };
 const updatePostSchema = {
     [Segments.BODY]: Joi.object({
         message: Joi.string().required(),
-    })
+    }),
 };
 
 postRouter
     .route("/")
-    .post(celebrate(newPostSchema), addPost)
-    .get(celebrate(getPostsSchema), getPosts);
+    .get(celebrate(getPostsSchema), controller.getItems.bind(controller))
+    .post(celebrate(newPostSchema), controller.create.bind(controller));
 postRouter
     .route("/:id")
     .all(celebrate(idParamSchema))
-    .get(getPostById)
-    .put(celebrate(updatePostSchema), updatePostById);
+    .get(controller.getItemById.bind(controller))
+    .put(celebrate(updatePostSchema), controller.updateItemById.bind(controller));
 
 export default postRouter;
