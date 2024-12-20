@@ -1,31 +1,36 @@
 import Joi from "joi";
 import { Router } from "express";
-import { createValidator } from "express-joi-validation";
+import { celebrate, Segments } from "celebrate";
 import { addPost, getPostById, getPosts, updatePostById } from "../controllers/posts.js";
 import { idParamSchema } from "./utils.js";
 
 const postRouter = new Router();
-const validator = createValidator();
 
-const newPostSchema = Joi.object({
-    message: Joi.string().required(),
-    sender: Joi.string().required(),
-});
-const getPostsSchema = Joi.object({
-    sender: Joi.string().optional(),
-});
-const updatePostSchema = Joi.object({
-    message: Joi.string().required(),
-});
+const newPostSchema = {
+    [Segments.BODY]: Joi.object({
+        message: Joi.string().required(),
+        sender: Joi.string().required(),
+    }),
+};
+const getPostsSchema = {
+    [Segments.QUERY]: Joi.object({
+        sender: Joi.string().optional(),
+    })
+};
+const updatePostSchema = {
+    [Segments.BODY]: Joi.object({
+        message: Joi.string().required(),
+    })
+};
 
 postRouter
     .route("/")
-    .post(validator.body(newPostSchema), addPost)
-    .get(validator.query(getPostsSchema), getPosts);
+    .post(celebrate(newPostSchema), addPost)
+    .get(celebrate(getPostsSchema), getPosts);
 postRouter
     .route("/:id")
-    .all(validator.params(idParamSchema))
+    .all(celebrate(idParamSchema))
     .get(getPostById)
-    .put(validator.body(updatePostSchema), updatePostById);
+    .put(celebrate(updatePostSchema), updatePostById);
 
 export default postRouter;

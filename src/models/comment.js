@@ -8,7 +8,7 @@ const commentSchema = new Schema({
     createdAt: { type: Date, default: Date.now },
 });
 
-commentSchema.pre("save", { isAsync: true }, async function () {
+commentSchema.pre("save", async function () {
     const post = await Post.findById(this.post);
 
     if (!post) {

@@ -1,6 +1,6 @@
 import Joi from "joi";
 import { Router } from "express";
-import { createValidator } from "express-joi-validation";
+import { celebrate, Segments } from "celebrate";
 import {
     addComment,
     getComments,
@@ -11,30 +11,35 @@ import {
 import { idParamSchema, validObjectId } from "./utils.js";
 
 const commentRouter = new Router();
-const validator = createValidator();
 
-const newCommentSchema = Joi.object({
-    post: Joi.string().custom(validObjectId).required(),
-    message: Joi.string().required(),
-    sender: Joi.string().required(),
-});
-const getCommentsSchema = Joi.object({
-    post: Joi.string().custom(validObjectId).optional(),
-    sender: Joi.string().optional(),
-});
-const updateCommentSchema = Joi.object({
-    message: Joi.string().required(),
-});
+const newCommentSchema = {
+    [Segments.BODY]: Joi.object({
+        post: Joi.string().custom(validObjectId).required(),
+        message: Joi.string().required(),
+        sender: Joi.string().required(),
+    }),
+};
+const getCommentsSchema = {
+    [Segments.QUERY]: Joi.object({
+        post: Joi.string().custom(validObjectId).optional(),
+        sender: Joi.string().optional(),
+    }),
+};
+const updateCommentSchema = {
+    [Segments.BODY]: Joi.object({
+        message: Joi.string().required(),
+    }),
+};
 
 commentRouter
     .route("/")
-    .post(validator.body(newCommentSchema), addComment)
-    .get(validator.query(getCommentsSchema), getComments);
+    .post(celebrate(newCommentSchema), addComment)
+    .get(celebrate(getCommentsSchema), getComments);
 commentRouter
     .route("/:id")
-    .all(validator.params(idParamSchema))
+    .all(celebrate(idParamSchema))
     .get(getCommentById)
-    .put(validator.body(updateCommentSchema), updateCommentById)
+    .put(celebrate(updateCommentSchema), updateCommentById)
     .delete(deleteCommentById);
 
 export default commentRouter;
