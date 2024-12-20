@@ -26,7 +26,6 @@ export default class BaseController {
     }
 
     async updateItemById(req, res) {
-        // Use updateOne method instead of findById and save
         const item = await this.model.findById(req.params.id);
 
         if (!item) {
@@ -35,6 +34,16 @@ export default class BaseController {
             item.message = req.body.message;
             item.save();
             res.json(item);
+        }
+    }
+
+    async deleteItemById(req, res) {
+        const item = await this.model.findByIdAndDelete(req.params.id);
+
+        if (!item) {
+            res.status(404).json({ error: "Item not found" });
+        } else {
+            res.status(204).send();
         }
     }
 }

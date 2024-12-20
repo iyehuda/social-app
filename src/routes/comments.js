@@ -1,16 +1,11 @@
 import Joi from "joi";
+import CommentsController from "../controllers/comments.js";
 import { Router } from "express";
 import { celebrate, Segments } from "celebrate";
-import {
-    addComment,
-    getComments,
-    getCommentById,
-    updateCommentById,
-    deleteCommentById,
-} from "../controllers/comments.js";
 import { idParamSchema, validObjectId } from "./utils.js";
 
 const commentRouter = new Router();
+const controller = new CommentsController();
 
 const newCommentSchema = {
     [Segments.BODY]: Joi.object({
@@ -33,13 +28,13 @@ const updateCommentSchema = {
 
 commentRouter
     .route("/")
-    .post(celebrate(newCommentSchema), addComment)
-    .get(celebrate(getCommentsSchema), getComments);
+    .get(celebrate(getCommentsSchema), controller.getItems.bind(controller))
+    .post(celebrate(newCommentSchema), controller.create.bind(controller));
 commentRouter
     .route("/:id")
     .all(celebrate(idParamSchema))
-    .get(getCommentById)
-    .put(celebrate(updateCommentSchema), updateCommentById)
-    .delete(deleteCommentById);
+    .get(controller.getItemById.bind(controller))
+    .put(celebrate(updateCommentSchema), controller.updateItemById.bind(controller))
+    .delete(controller.deleteItemById.bind(controller));
 
 export default commentRouter;
