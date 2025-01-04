@@ -32,7 +32,7 @@ export default class BaseController {
             res.status(404).json({ error: "Item not found" });
         } else {
             item.message = req.body.message;
-            item.save();
+            await item.save();
             res.json(item);
         }
     }
