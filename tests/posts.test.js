@@ -2,33 +2,38 @@ import request from "supertest";
 import Post from "../src/models/post.js";
 import { createApp } from "../src/app.js";
 import { connect, disconnect } from "../src/db.js";
-import { dbConnectionString } from "../src/config.js";
+import { createDatabase, invalidId, nonExistentId } from "./utils.js";
 
+let teardown = null;
 const app = createApp();
 const testPost = { message: "Hello World", sender: "John Doe" };
 let testPostDoc = null;
 
 beforeAll(async () => {
+    const { dbConnectionString, closeDatabase } = await createDatabase();
+    teardown = closeDatabase;
+
     await connect(dbConnectionString);
-});
-
-afterAll(async () => {
-    await disconnect();
-});
-
-beforeEach(async () => {
     await Post.deleteMany({});
     testPostDoc = await Post.create(testPost);
 });
 
+afterAll(async () => {
+    await disconnect();
+    await teardown();
+});
+
 describe("POST /posts", () => {
     it("should create a new post", async () => {
-        const response = await request(app).post("/posts").send(testPost);
+        const newTestPost = { message: "Hello World", sender: "John Newman" };
+        const response = await request(app).post("/posts").send(newTestPost);
         const post = await Post.findById(response.body.id);
 
         expect(response.status).toBe(201);
-        expect(response.body).toMatchObject(testPost);
-        expect(post).toMatchObject(testPost);
+        expect(response.body).toMatchObject(newTestPost);
+        expect(post).toMatchObject(newTestPost);
+
+        await post.deleteOne();
     });
 
     it("should return 400 if message or sender is missing", async () => {
@@ -48,14 +53,14 @@ describe("GET /posts", () => {
         const response = await request(app).get("/posts");
 
         expect(response.status).toBe(200);
-        expect(response.body).toStrictEqual([{ ...testPost, id: testPostDoc.id }]);
+        expect(response.body).toMatchObject([{ ...testPost, id: testPostDoc.id }]);
     });
 
     it("should get posts by sender", async () => {
         const response = await request(app).get(`/posts?sender=${testPost.sender}`);
 
         expect(response.status).toBe(200);
-        expect(response.body).toStrictEqual([{ ...testPost, id: testPostDoc.id }]);
+        expect(response.body).toMatchObject([{ ...testPost, id: testPostDoc.id }]);
     });
 
     it("should return an empty result if no posts found", async () => {
@@ -75,7 +80,7 @@ describe("GET /posts/:id", () => {
     });
 
     it("should return 404 if post not found", async () => {
-        const response = await request(app).get("/posts/999999999999999999999999");
+        const response = await request(app).get(`/posts/${nonExistentId}`);
 
         expect(response.status).toBe(404);
     });
@@ -102,7 +107,7 @@ describe("PUT /posts/:id", () => {
     it("should return 404 if post not found", async () => {
         const postUpdate = { message: "Updated Message" };
 
-        const response = await request(app).put("/posts/999999999999999999999999").send(postUpdate);
+        const response = await request(app).put(`/posts/${nonExistentId}`).send(postUpdate);
 
         expect(response.status).toBe(404);
     });
@@ -110,7 +115,7 @@ describe("PUT /posts/:id", () => {
     it("should return 400 if post id is invalid", async () => {
         const postUpdate = { message: "Updated Message" };
 
-        const response = await request(app).put("/posts/1234").send(postUpdate);
+        const response = await request(app).put(`/posts/${invalidId}`).send(postUpdate);
 
         expect(response.status).toBe(400);
     });

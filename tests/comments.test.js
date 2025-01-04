@@ -3,8 +3,9 @@ import Comment from "../src/models/comment.js";
 import Post from "../src/models/post.js";
 import { createApp } from "../src/app.js";
 import { connect, disconnect } from "../src/db.js";
-import { dbConnectionString } from "../src/config.js";
+import { createDatabase, nonExistentId } from "./utils.js";
 
+let teardown = null;
 const app = createApp();
 const testPost = { message: "Hello World", sender: "John Doe" };
 const testCommentContent = { message: "Hello World", sender: "Adam Comment" };
@@ -13,6 +14,9 @@ let testComment = null;
 let testCommentDoc = null;
 
 beforeAll(async () => {
+    const { dbConnectionString, closeDatabase } = await createDatabase();
+    teardown = closeDatabase;
+
     await connect(dbConnectionString);
     await Comment.deleteMany({});
     await Post.deleteMany({});
@@ -20,6 +24,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await disconnect();
+    await teardown();
 });
 
 beforeEach(async () => {
@@ -63,7 +68,7 @@ describe("POST /comments", () => {
     it("should return 400 if post does not exist", async () => {
         const commentWithNonExistentPost = {
             ...testCommentContent,
-            post: "999999999999999999999999",
+            post: nonExistentId,
         };
 
         const response = await request(app).post("/comments").send(commentWithNonExistentPost);
@@ -104,7 +109,7 @@ describe("GET /comments/:id", () => {
     });
 
     it("should return 404 if comment not found", async () => {
-        const response = await request(app).get("/comments/999999999999999999999999");
+        const response = await request(app).get(`/comments/${nonExistentId}`);
 
         expect(response.status).toBe(404);
     });
@@ -135,9 +140,7 @@ describe("PUT /comments/:id", () => {
     it("should return 404 if comment not found", async () => {
         const commentUpdate = { message: "Updated Message" };
 
-        const response = await request(app)
-            .put("/comments/999999999999999999999999")
-            .send(commentUpdate);
+        const response = await request(app).put(`/comments/${nonExistentId}`).send(commentUpdate);
 
         expect(response.status).toBe(404);
     });
@@ -153,7 +156,7 @@ describe("DELETE /comments/:id", () => {
     });
 
     it("should return 404 if comment not found", async () => {
-        const response = await request(app).delete("/comments/999999999999999999999999");
+        const response = await request(app).delete(`/comments/${nonExistentId}`);
 
         expect(response.status).toBe(404);
     });
