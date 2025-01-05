@@ -1,15 +1,22 @@
-import { Schema, model } from "mongoose";
-import Post from "./post.js";
-import { commonSchemaOptions } from "./utils.js";
+import { Schema, model, Document } from "mongoose";
+import Post from "./post";
+import { commonSchemaOptions } from "./utils";
 
-const commentSchema = new Schema(
+export interface IComment extends Document {
+    post: Schema.Types.ObjectId;
+    sender: string;
+    message: string;
+    createdAt: Date;
+}
+
+const commentSchema = new Schema<IComment>(
     {
         post: { type: Schema.Types.ObjectId, ref: "Post", required: true },
         sender: { type: String, required: true },
         message: { type: String, required: true },
         createdAt: { type: Date, default: Date.now },
     },
-    commonSchemaOptions
+    commonSchemaOptions(),
 );
 
 commentSchema.pre("save", async function () {

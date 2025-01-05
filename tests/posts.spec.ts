@@ -1,12 +1,14 @@
 import request from "supertest";
-import Post from "../src/models/post.js";
-import { createApp } from "../src/app.js";
-import { connect, disconnect } from "../src/db.js";
-import { createDatabase, invalidId, nonExistentId } from "./utils.js";
+import Post from "../src/models/post";
+import { createApp } from "../src/app";
+import { connect, disconnect } from "../src/db";
+import { createDatabase, invalidId, nonExistentId } from "./utils";
 
+// @ts-expect-error FIX
 let teardown = null;
 const app = createApp();
 const testPost = { message: "Hello World", sender: "John Doe" };
+// @ts-expect-error FIX
 let testPostDoc = null;
 
 beforeAll(async () => {
@@ -20,6 +22,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await disconnect();
+    // @ts-expect-error FIX
     await teardown();
 });
 
@@ -33,6 +36,7 @@ describe("POST /posts", () => {
         expect(response.body).toMatchObject(newTestPost);
         expect(post).toMatchObject(newTestPost);
 
+        // @ts-expect-error FIX
         await post.deleteOne();
     });
 
@@ -53,6 +57,7 @@ describe("GET /posts", () => {
         const response = await request(app).get("/posts");
 
         expect(response.status).toBe(200);
+        // @ts-expect-error FIX
         expect(response.body).toMatchObject([{ ...testPost, id: testPostDoc.id }]);
     });
 
@@ -60,6 +65,7 @@ describe("GET /posts", () => {
         const response = await request(app).get(`/posts?sender=${testPost.sender}`);
 
         expect(response.status).toBe(200);
+        // @ts-expect-error FIX
         expect(response.body).toMatchObject([{ ...testPost, id: testPostDoc.id }]);
     });
 
@@ -73,6 +79,7 @@ describe("GET /posts", () => {
 
 describe("GET /posts/:id", () => {
     it("should get a post by id", async () => {
+        // @ts-expect-error FIX
         const response = await request(app).get(`/posts/${testPostDoc.id}`);
 
         expect(response.status).toBe(200);
@@ -90,6 +97,7 @@ describe("PUT /posts/:id", () => {
     it("should update a post by id", async () => {
         const postUpdate = { message: "Updated Message" };
 
+        // @ts-expect-error FIX
         const response = await request(app).put(`/posts/${testPostDoc.id}`).send(postUpdate);
 
         expect(response.status).toBe(200);
@@ -99,6 +107,7 @@ describe("PUT /posts/:id", () => {
     it("should return 400 if message is missing", async () => {
         const emptyPostUpdate = {};
 
+        // @ts-expect-error FIX
         const response = await request(app).put(`/posts/${testPostDoc.id}`).send(emptyPostUpdate);
 
         expect(response.status).toBe(400);

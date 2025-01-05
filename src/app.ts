@@ -1,7 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
-import postRouter from "./routes/posts.js";
-import commentRouter from "./routes/comments.js";
+import postRouter from "./routes/posts";
+import commentRouter from "./routes/comments";
 import { errors } from "celebrate";
 
 export function createApp() {

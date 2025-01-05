@@ -1,10 +1,10 @@
 import Joi from "joi";
-import PostsController from "../controllers/posts.js";
+import PostsController from "../controllers/posts";
 import { Router } from "express";
 import { celebrate, Segments } from "celebrate";
-import { idParamSchema } from "./utils.js";
+import { idParamSchema } from "./utils";
 
-const postRouter = new Router();
+const postRouter = Router();
 const controller = new PostsController();
 
 const newPostSchema = {
