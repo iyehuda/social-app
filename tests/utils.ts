@@ -1,6 +1,13 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
 
-export async function createDatabase() {
+export type Teardown = () => Promise<void>;
+
+export interface DBConfig {
+    dbConnectionString: string;
+    closeDatabase: Teardown;
+}
+
+export async function createDatabase(): Promise<DBConfig> {
     const mongoServer = await MongoMemoryServer.create();
     
     return {
