@@ -1,12 +1,17 @@
 import { Schema, model } from "mongoose";
-import { commonSchemaOptions } from "./utils.js";
+import { commonSchemaOptions } from "./utils";
 
-const postSchema = new Schema(
+export interface IPost extends Document {
+    sender: string;
+    message: string;
+}
+
+const postSchema = new Schema<IPost>(
     {
         sender: { type: String, required: true },
         message: { type: String, required: true },
     },
-    commonSchemaOptions
+    commonSchemaOptions(),
 );
 
 export default model("Post", postSchema);

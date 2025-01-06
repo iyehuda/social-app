@@ -1,10 +1,10 @@
 import Joi from "joi";
-import CommentsController from "../controllers/comments.js";
+import CommentsController from "../controllers/comments";
 import { Router } from "express";
 import { celebrate, Segments } from "celebrate";
-import { idParamSchema, validObjectId } from "./utils.js";
+import { idParamSchema, validObjectId } from "./utils";
 
-const commentRouter = new Router();
+const commentRouter = Router();
 const controller = new CommentsController();
 
 const newCommentSchema = {

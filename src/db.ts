@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-export function connect(connectionString) {
+export function connect(connectionString: string) {
     return mongoose.connect(connectionString);
 }
 

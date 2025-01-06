@@ -1,17 +1,18 @@
 import request from "supertest";
-import Comment from "../src/models/comment.js";
-import Post from "../src/models/post.js";
-import { createApp } from "../src/app.js";
-import { connect, disconnect } from "../src/db.js";
-import { createDatabase, nonExistentId } from "./utils.js";
+import Comment, { IComment } from "../src/models/comment";
+import Post, { IPost } from "../src/models/post";
+import { createApp } from "../src/app";
+import { connect, disconnect } from "../src/db";
+import { createDatabase, nonExistentId, Teardown } from "./utils";
+import { HydratedDocument } from "mongoose";
 
-let teardown = null;
+let teardown: Teardown;
 const app = createApp();
 const testPost = { message: "Hello World", sender: "John Doe" };
 const testCommentContent = { message: "Hello World", sender: "Adam Comment" };
-let testPostDoc = null;
-let testComment = null;
-let testCommentDoc = null;
+let testPostDoc: HydratedDocument<IPost>;
+let testComment: typeof testCommentContent & { post: string };
+let testCommentDoc: HydratedDocument<IComment>;
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -49,9 +50,9 @@ describe("POST /comments", () => {
 
         expect(response.status).toBe(201);
         expect(response.body).toMatchObject(testComment);
-        expect(comment.message).toBe(testComment.message);
-        expect(comment.sender).toBe(testComment.sender);
-        expect(comment.post.toString()).toBe(testComment.post);
+        expect(comment!.message).toBe(testComment.message);
+        expect(comment!.sender).toBe(testComment.sender);
+        expect(comment!.post.toString()).toBe(testComment.post);
     });
 
     it("should return 400 if message or sender is missing", async () => {

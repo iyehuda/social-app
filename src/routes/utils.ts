@@ -2,9 +2,9 @@ import { Segments } from "celebrate";
 import Joi from "joi";
 import mongoose from "mongoose";
 
-export function validObjectId(value, helpers) {
+export function validObjectId(value: string, helpers: Joi.CustomHelpers) {
     if (!mongoose.Types.ObjectId.isValid(value)) {
-        return helpers.message("Invalid post ID");
+        return helpers.error("Invalid post ID");
     }
 
     return value;

@@ -1,13 +1,14 @@
 import request from "supertest";
-import Post from "../src/models/post.js";
-import { createApp } from "../src/app.js";
-import { connect, disconnect } from "../src/db.js";
-import { createDatabase, invalidId, nonExistentId } from "./utils.js";
+import Post, { IPost } from "../src/models/post";
+import { createApp } from "../src/app";
+import { connect, disconnect } from "../src/db";
+import { createDatabase, invalidId, nonExistentId, Teardown } from "./utils";
+import { HydratedDocument } from "mongoose";
 
-let teardown = null;
+let teardown: Teardown;
 const app = createApp();
 const testPost = { message: "Hello World", sender: "John Doe" };
-let testPostDoc = null;
+let testPostDoc: HydratedDocument<IPost>;
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -33,7 +34,7 @@ describe("POST /posts", () => {
         expect(response.body).toMatchObject(newTestPost);
         expect(post).toMatchObject(newTestPost);
 
-        await post.deleteOne();
+        await post!.deleteOne();
     });
 
     it("should return 400 if message or sender is missing", async () => {
