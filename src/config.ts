@@ -1,9 +1,9 @@
 import dotenv from "dotenv";
 
 dotenv.config();
-
-// istanbul ignore next
-export const dbConnectionString =
-    process.env.DB_CONNECTION_STRING || "mongodb://localhost/fsd1?authSource=admin";
-// istanbul ignore next
-export const port = process.env.PORT || 3000;
+const defaults = {
+    DB_CONNECTION_STRING: "mongodb://localhost/fsd1?authSource=admin",
+    PORT: 3000,
+};
+export const dbConnectionString = process.env.DB_CONNECTION_STRING ?? defaults.DB_CONNECTION_STRING;
+export const port = process.env.PORT ?? defaults.PORT;

@@ -1,5 +1,5 @@
-import { Segments } from "celebrate";
 import Joi from "joi";
+import { Segments } from "celebrate";
 import mongoose from "mongoose";
 
 export function validObjectId(value: string, helpers: Joi.CustomHelpers) {

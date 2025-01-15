@@ -1,8 +1,8 @@
-import express from "express";
 import bodyParser from "body-parser";
-import postRouter from "./routes/posts";
 import commentRouter from "./routes/comments";
 import { errors } from "celebrate";
+import express from "express";
+import postRouter from "./routes/posts";
 
 export function createApp() {
     const app = express();

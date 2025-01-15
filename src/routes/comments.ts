@@ -1,16 +1,16 @@
-import Joi from "joi";
-import CommentsController from "../controllers/comments";
-import { Router } from "express";
-import { celebrate, Segments } from "celebrate";
+import { Segments, celebrate } from "celebrate";
 import { idParamSchema, validObjectId } from "./utils";
+import CommentsController from "../controllers/comments";
+import Joi from "joi";
+import { Router } from "express";
 
 const commentRouter = Router();
 const controller = new CommentsController();
 
 const newCommentSchema = {
     [Segments.BODY]: Joi.object({
-        post: Joi.string().custom(validObjectId).required(),
         message: Joi.string().required(),
+        post: Joi.string().custom(validObjectId).required(),
         sender: Joi.string().required(),
     }),
 };
