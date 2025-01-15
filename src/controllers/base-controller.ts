@@ -1,12 +1,12 @@
-import { Request, Response } from "express";
 import { Model, RootFilterQuery } from "mongoose";
+import { Request, Response } from "express";
 
 export default class BaseController<T> {
-        private model: Model<T>;
+    private model: Model<T>;
 
-        constructor(model: Model<T>) {
-            this.model = model;
-        }
+    constructor(model: Model<T>) {
+        this.model = model;
+    }
 
     async create(req: Request, res: Response) {
         const item = await this.model.create(req.body);

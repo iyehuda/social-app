@@ -1,14 +1,14 @@
-import request from "supertest";
 import Post, { IPost } from "../src/models/post";
-import { createApp } from "../src/app";
+import { Teardown, createDatabase, invalidId, nonExistentId } from "./utils";
 import { connect, disconnect } from "../src/db";
-import { createDatabase, invalidId, nonExistentId, Teardown } from "./utils";
 import { HydratedDocument } from "mongoose";
+import { createApp } from "../src/app";
+import request from "supertest";
 
 let teardown: Teardown;
+let testPostDoc: HydratedDocument<IPost>;
 const app = createApp();
 const testPost = { message: "Hello World", sender: "John Doe" };
-let testPostDoc: HydratedDocument<IPost>;
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -28,7 +28,8 @@ describe("POST /posts", () => {
     it("should create a new post", async () => {
         const newTestPost = { message: "Hello World", sender: "John Newman" };
         const response = await request(app).post("/posts").send(newTestPost);
-        const post = await Post.findById(response.body.id);
+        const body = response.body as IPost;
+        const post = await Post.findById(body.id);
 
         expect(response.status).toBe(201);
         expect(response.body).toMatchObject(newTestPost);
@@ -66,9 +67,10 @@ describe("GET /posts", () => {
 
     it("should return an empty result if no posts found", async () => {
         const response = await request(app).get("/posts?sender=Jane Doe");
+        const posts = response.body as IPost[];
 
         expect(response.status).toBe(200);
-        expect(response.body.length).toBe(0);
+        expect(posts.length).toBe(0);
     });
 });
 

@@ -1,18 +1,18 @@
-import request from "supertest";
 import Comment, { IComment } from "../src/models/comment";
 import Post, { IPost } from "../src/models/post";
-import { createApp } from "../src/app";
+import { Teardown, createDatabase, nonExistentId } from "./utils";
 import { connect, disconnect } from "../src/db";
-import { createDatabase, nonExistentId, Teardown } from "./utils";
 import { HydratedDocument } from "mongoose";
+import { createApp } from "../src/app";
+import request from "supertest";
 
 let teardown: Teardown;
 const app = createApp();
 const testPost = { message: "Hello World", sender: "John Doe" };
 const testCommentContent = { message: "Hello World", sender: "Adam Comment" };
-let testPostDoc: HydratedDocument<IPost>;
 let testComment: typeof testCommentContent & { post: string };
 let testCommentDoc: HydratedDocument<IComment>;
+let testPostDoc: HydratedDocument<IPost>;
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -46,7 +46,8 @@ describe("POST /comments", () => {
 
     it("should create a new comment", async () => {
         const response = await request(app).post("/comments").send(testComment);
-        const comment = await Comment.findById(response.body.id);
+        const body = response.body as IComment;
+        const comment = await Comment.findById(body.id);
 
         expect(response.status).toBe(201);
         expect(response.body).toMatchObject(testComment);
@@ -95,9 +96,10 @@ describe("GET /comments", () => {
 
     it("should return an empty result if no comments found", async () => {
         const response = await request(app).get("/comments?sender=Jane Doe");
+        const comments = response.body as IComment[];
 
         expect(response.status).toBe(200);
-        expect(response.body.length).toBe(0);
+        expect(comments.length).toBe(0);
     });
 });
 
