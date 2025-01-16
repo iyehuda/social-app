@@ -1,14 +1,18 @@
 import Post, { IPost } from "../src/models/post";
 import { Teardown, createDatabase, invalidId, nonExistentId } from "./utils";
+import User, { IUser } from "../src/models/user";
 import { connect, disconnect } from "../src/db";
 import { HydratedDocument } from "mongoose";
 import { createApp } from "../src/app";
 import request from "supertest";
 
 let teardown: Teardown;
-let testPostDoc: HydratedDocument<IPost>;
 const app = createApp();
-const testPost = { author: "John Doe", message: "Hello World" };
+const testPostAuthor = { email: "john@example.org", username: "John Doe" };
+const testPostContent = { message: "Hello World" };
+let testPost: typeof testPostContent & { author: string };
+let testPostDoc: HydratedDocument<IPost>;
+let testPostAuthorDoc: HydratedDocument<IUser>;
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -16,7 +20,7 @@ beforeAll(async () => {
 
     await connect(dbConnectionString);
     await Post.deleteMany({});
-    testPostDoc = await Post.create(testPost);
+    await User.deleteMany({});
 });
 
 afterAll(async () => {
@@ -24,28 +28,51 @@ afterAll(async () => {
     await teardown();
 });
 
+beforeEach(async () => {
+    testPostAuthorDoc = await User.create(testPostAuthor);
+    testPost = { ...testPostContent, author: testPostAuthorDoc.id };
+    testPostDoc = await Post.create(testPost);
+});
+
+afterEach(async () => {
+    await testPostDoc.deleteOne();
+    await testPostAuthorDoc.deleteOne();
+});
+
 describe("POST /posts", () => {
+    afterAll(async () => {
+        await Post.deleteMany({});
+    });
+
     it("should create a new post", async () => {
-        const newTestPost = { author: "John Newman", message: "Hello World" };
-        const response = await request(app).post("/posts").send(newTestPost);
+        const response = await request(app).post("/posts").send(testPost);
         const body = response.body as IPost;
         const post = await Post.findById(body.id);
 
         expect(response.status).toBe(201);
-        expect(response.body).toMatchObject(newTestPost);
-        expect(post).toMatchObject(newTestPost);
+        expect(response.body).toMatchObject(testPost);
+        expect(post!.author.toString()).toBe(testPost.author);
+        expect(post!.message).toBe(testPost.message);
 
         await post!.deleteOne();
     });
 
+    it("should return 404 if author does not exist", async () => {
+        const postWithNonExistentAuthor = { ...testPostContent, author: nonExistentId };
+
+        const response = await request(app).post("/posts").send(postWithNonExistentAuthor);
+
+        expect(response.status).toBe(404);
+    });
+
     it("should return 400 if message or author is missing", async () => {
-        const postWithoutauthor = { message: "Hello World" };
+        const postWithoutAuthor = { message: "Hello World" };
         const postWithoutMessage = { author: "John Doe" };
 
-        const noauthorResponse = await request(app).post("/posts").send(postWithoutauthor);
+        const noAuthorResponse = await request(app).post("/posts").send(postWithoutAuthor);
         const noMessageResponse = await request(app).post("/posts").send(postWithoutMessage);
 
-        expect(noauthorResponse.status).toBe(400);
+        expect(noAuthorResponse.status).toBe(400);
         expect(noMessageResponse.status).toBe(400);
     });
 });
@@ -66,7 +93,7 @@ describe("GET /posts", () => {
     });
 
     it("should return an empty result if no posts found", async () => {
-        const response = await request(app).get("/posts?author=Jane Doe");
+        const response = await request(app).get(`/posts?author=${nonExistentId}`);
         const posts = response.body as IPost[];
 
         expect(response.status).toBe(200);

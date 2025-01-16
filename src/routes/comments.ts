@@ -9,14 +9,14 @@ const controller = new CommentsController();
 
 const newCommentSchema = {
     [Segments.BODY]: Joi.object({
-        author: Joi.string().required(),
+        author: Joi.string().custom(validObjectId).required(),
         message: Joi.string().required(),
         post: Joi.string().custom(validObjectId).required(),
     }),
 };
 const getCommentsSchema = {
     [Segments.QUERY]: Joi.object({
-        author: Joi.string().optional(),
+        author: Joi.string().custom(validObjectId).optional(),
         post: Joi.string().custom(validObjectId).optional(),
     }),
 };

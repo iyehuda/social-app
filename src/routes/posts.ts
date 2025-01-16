@@ -1,21 +1,21 @@
 import { Segments, celebrate } from "celebrate";
+import { idParamSchema, validObjectId } from "./utils";
 import Joi from "joi";
 import PostsController from "../controllers/posts";
 import { Router } from "express";
-import { idParamSchema } from "./utils";
 
 const postRouter = Router();
 const controller = new PostsController();
 
 const newPostSchema = {
     [Segments.BODY]: Joi.object({
-        author: Joi.string().required(),
+        author: Joi.string().custom(validObjectId).required(),
         message: Joi.string().required(),
     }),
 };
 const getPostsSchema = {
     [Segments.QUERY]: Joi.object({
-        author: Joi.string().optional(),
+        author: Joi.string().custom(validObjectId).optional(),
     }),
 };
 const updatePostSchema = {

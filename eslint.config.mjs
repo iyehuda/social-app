@@ -40,6 +40,7 @@ export default tseslint.config(
             "@typescript-eslint/no-misused-promises": "off",
             "@typescript-eslint/no-unsafe-assignment": "off",
             "init-declarations": "off",
+            "max-lines-per-function": ["error", { max: 100 }],
             "no-magic-numbers": "off",
         },
     },
