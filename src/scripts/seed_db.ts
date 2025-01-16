@@ -16,30 +16,30 @@ async function seed() {
 
     const firstPost = await Post.create({
         _id: new mongoose.Types.ObjectId("6738b7b2944556561a86110a"),
+        author: "alice@example.com",
         message: "Hello, World!",
-        sender: "alice@example.com",
     });
 
     const secondPost = await Post.create({
+        author: "bob@example.com",
         message: "This is a test post",
-        sender: "bob@example.com",
     });
 
     await Comment.create([
         {
+            author: "charlie@example.com",
             message: "Great first post!",
             post: firstPost._id,
-            sender: "charlie@example.com",
         },
         {
+            author: "david@example.com",
             message: "Welcome to the platform!",
             post: firstPost._id,
-            sender: "david@example.com",
         },
         {
+            author: "alice@example.com",
             message: "Nice test post, Bob!",
             post: secondPost._id,
-            sender: "alice@example.com",
         },
     ]);
 

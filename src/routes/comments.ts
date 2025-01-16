@@ -9,15 +9,15 @@ const controller = new CommentsController();
 
 const newCommentSchema = {
     [Segments.BODY]: Joi.object({
+        author: Joi.string().required(),
         message: Joi.string().required(),
         post: Joi.string().custom(validObjectId).required(),
-        sender: Joi.string().required(),
     }),
 };
 const getCommentsSchema = {
     [Segments.QUERY]: Joi.object({
+        author: Joi.string().optional(),
         post: Joi.string().custom(validObjectId).optional(),
-        sender: Joi.string().optional(),
     }),
 };
 const updateCommentSchema = {

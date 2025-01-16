@@ -9,13 +9,13 @@ const controller = new PostsController();
 
 const newPostSchema = {
     [Segments.BODY]: Joi.object({
+        author: Joi.string().required(),
         message: Joi.string().required(),
-        sender: Joi.string().required(),
     }),
 };
 const getPostsSchema = {
     [Segments.QUERY]: Joi.object({
-        sender: Joi.string().optional(),
+        author: Joi.string().optional(),
     }),
 };
 const updatePostSchema = {

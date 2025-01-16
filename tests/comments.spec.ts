@@ -8,8 +8,8 @@ import request from "supertest";
 
 let teardown: Teardown;
 const app = createApp();
-const testPost = { message: "Hello World", sender: "John Doe" };
-const testCommentContent = { message: "Hello World", sender: "Adam Comment" };
+const testPost = { author: "John Doe", message: "Hello World" };
+const testCommentContent = { author: "Adam Comment", message: "Hello World" };
 let testComment: typeof testCommentContent & { post: string };
 let testCommentDoc: HydratedDocument<IComment>;
 let testPostDoc: HydratedDocument<IPost>;
@@ -52,18 +52,18 @@ describe("POST /comments", () => {
         expect(response.status).toBe(201);
         expect(response.body).toMatchObject(testComment);
         expect(comment!.message).toBe(testComment.message);
-        expect(comment!.sender).toBe(testComment.sender);
+        expect(comment!.author).toBe(testComment.author);
         expect(comment!.post.toString()).toBe(testComment.post);
     });
 
-    it("should return 400 if message or sender is missing", async () => {
-        const commentWithoutSender = { message: "Hello World" };
-        const commentWithoutMessage = { sender: "John Doe" };
+    it("should return 400 if message or author is missing", async () => {
+        const commentWithoutauthor = { message: "Hello World" };
+        const commentWithoutMessage = { author: "John Doe" };
 
-        const noSenderResponse = await request(app).post("/comments").send(commentWithoutSender);
+        const noauthorResponse = await request(app).post("/comments").send(commentWithoutauthor);
         const noMessageResponse = await request(app).post("/comments").send(commentWithoutMessage);
 
-        expect(noSenderResponse.status).toBe(400);
+        expect(noauthorResponse.status).toBe(400);
         expect(noMessageResponse.status).toBe(400);
     });
 
@@ -87,15 +87,15 @@ describe("GET /comments", () => {
         expect(response.body).toMatchObject([{ ...testComment, id: testCommentDoc.id }]);
     });
 
-    it("should get comments by sender", async () => {
-        const response = await request(app).get(`/comments?sender=${testComment.sender}`);
+    it("should get comments by author", async () => {
+        const response = await request(app).get(`/comments?author=${testComment.author}`);
 
         expect(response.status).toBe(200);
         expect(response.body).toMatchObject([{ ...testComment, id: testCommentDoc.id }]);
     });
 
     it("should return an empty result if no comments found", async () => {
-        const response = await request(app).get("/comments?sender=Jane Doe");
+        const response = await request(app).get("/comments?author=Jane Doe");
         const comments = response.body as IComment[];
 
         expect(response.status).toBe(200);

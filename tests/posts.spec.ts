@@ -8,7 +8,7 @@ import request from "supertest";
 let teardown: Teardown;
 let testPostDoc: HydratedDocument<IPost>;
 const app = createApp();
-const testPost = { message: "Hello World", sender: "John Doe" };
+const testPost = { author: "John Doe", message: "Hello World" };
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -26,7 +26,7 @@ afterAll(async () => {
 
 describe("POST /posts", () => {
     it("should create a new post", async () => {
-        const newTestPost = { message: "Hello World", sender: "John Newman" };
+        const newTestPost = { author: "John Newman", message: "Hello World" };
         const response = await request(app).post("/posts").send(newTestPost);
         const body = response.body as IPost;
         const post = await Post.findById(body.id);
@@ -38,14 +38,14 @@ describe("POST /posts", () => {
         await post!.deleteOne();
     });
 
-    it("should return 400 if message or sender is missing", async () => {
-        const postWithoutSender = { message: "Hello World" };
-        const postWithoutMessage = { sender: "John Doe" };
+    it("should return 400 if message or author is missing", async () => {
+        const postWithoutauthor = { message: "Hello World" };
+        const postWithoutMessage = { author: "John Doe" };
 
-        const noSenderResponse = await request(app).post("/posts").send(postWithoutSender);
+        const noauthorResponse = await request(app).post("/posts").send(postWithoutauthor);
         const noMessageResponse = await request(app).post("/posts").send(postWithoutMessage);
 
-        expect(noSenderResponse.status).toBe(400);
+        expect(noauthorResponse.status).toBe(400);
         expect(noMessageResponse.status).toBe(400);
     });
 });
@@ -58,15 +58,15 @@ describe("GET /posts", () => {
         expect(response.body).toMatchObject([{ ...testPost, id: testPostDoc.id }]);
     });
 
-    it("should get posts by sender", async () => {
-        const response = await request(app).get(`/posts?sender=${testPost.sender}`);
+    it("should get posts by author", async () => {
+        const response = await request(app).get(`/posts?author=${testPost.author}`);
 
         expect(response.status).toBe(200);
         expect(response.body).toMatchObject([{ ...testPost, id: testPostDoc.id }]);
     });
 
     it("should return an empty result if no posts found", async () => {
-        const response = await request(app).get("/posts?sender=Jane Doe");
+        const response = await request(app).get("/posts?author=Jane Doe");
         const posts = response.body as IPost[];
 
         expect(response.status).toBe(200);
