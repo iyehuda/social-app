@@ -51,15 +51,15 @@ GET http://localhost:3000/comments
 
 ###
 # Get comments for a specific post
-GET http://localhost:3000/comments?post=6738b7b2944556561a86110a
+GET http://localhost:3000/comments?post=678978cff1f71e3b0dd7bb45
 
 ###
 # Get comments by a specific author
-GET http://localhost:3000/comments?author=charlie@example.com
+GET http://localhost:3000/comments?author=678978cff1f71e3b0dd7bb43
 
 ###
 # Get a single comment by ID
-GET http://localhost:3000/comments/67390276d8eff8c8bf2b4a88
+GET http://localhost:3000/comments/678978cff1f71e3b0dd7bb4c
 
 ###
 # Update a comment
