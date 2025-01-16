@@ -29,7 +29,7 @@ export default tseslint.config(
             "new-cap": "off",
             "no-console": "off",
             "no-invalid-this": "off",
-            "no-magic-numbers": ["error", { ignore: [200, 201, 204, 404] }],
+            "no-magic-numbers": ["error", { ignore: [200, 201, 204, 404, 429] }],
             "no-negated-condition": "off",
             "one-var": ["error", "never"],
         },
