@@ -38,10 +38,10 @@ describe("POST /users", () => {
         await user!.deleteOne();
     });
 
-    it("should return 429 if username or email already exists", async () => {
+    it("should return 409 if username or email already exists", async () => {
         const response = await request(app).post("/users").send(testUser);
 
-        expect(response.status).toBe(429);
+        expect(response.status).toBe(409);
     });
 
     it("should return 400 if email is invalid", async () => {
@@ -106,6 +106,14 @@ describe("PUT /users/:id", () => {
         expect(response.status).toBe(400);
     });
 
+    it("should return 400 if user id is invalid", async () => {
+        const userUpdate = { email: "different@example.org" };
+
+        const response = await request(app).put(`/users/${invalidId}`).send(userUpdate);
+
+        expect(response.status).toBe(400);
+    });
+
     it("should return 404 if user not found", async () => {
         const userUpdate = { email: "different@example.org" };
 
@@ -114,12 +122,15 @@ describe("PUT /users/:id", () => {
         expect(response.status).toBe(404);
     });
 
-    it("should return 400 if user id is invalid", async () => {
-        const userUpdate = { email: "different@example.org" };
+    it("should return 409 if email already exists", async () => {
+        const newUser = { email: "new@example.com", username: "new" };
+        const userUpdate = { email: newUser.email };
 
-        const response = await request(app).put(`/users/${invalidId}`).send(userUpdate);
+        const newUserDoc = await User.create(newUser);
+        const response = await request(app).put(`/users/${testUserDoc.id}`).send(userUpdate);
+        await newUserDoc.deleteOne();
 
-        expect(response.status).toBe(400);
+        expect(response.status).toBe(409);
     });
 });
 
