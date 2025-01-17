@@ -1,14 +1,14 @@
 {
     "name": "social-app",
     "version": "1.0.0",
-    "main": "src/index.js",
+    "main": "dist/src/index.js",
     "scripts": {
         "build": "tsc",
         "db:start": "docker compose up -d",
-        "db:seed": "node src/scripts/seed_db.js",
+        "db:seed": "npm run build && node dist/src/scripts/seed_db.js",
         "dev": "nodemon",
         "lint": "eslint",
-        "test": "node --experimental-vm-modules node_modules/.bin/jest"
+        "test": "jest"
     },
     "author": "Yehuda Chikvashvili, Or Bachar",
     "license": "ISC",

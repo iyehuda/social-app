@@ -1,45 +1,59 @@
+/* eslint-disable no-magic-numbers */
+/* eslint-disable max-lines-per-function */
+/* eslint-disable max-statements */
 /* eslint-disable no-underscore-dangle */
 
 import { connect, disconnect } from "../db";
 import Comment from "../models/comment";
 import Post from "../models/post";
+import User from "../models/user";
 import { dbConnectionString } from "../config";
-import mongoose from "mongoose";
 
 async function seed() {
     await connect(dbConnectionString);
 
     console.log("Connected to MongoDB");
 
-    await Post.deleteMany();
     await Comment.deleteMany();
+    await Post.deleteMany();
+    await User.deleteMany();
 
-    const firstPost = await Post.create({
-        _id: new mongoose.Types.ObjectId("6738b7b2944556561a86110a"),
+    const alice = await User.create({
+        email: "alice@example.com",
+        username: "alice",
+    });
+    const bob = await User.create({
+        email: "bob@example.com",
+        username: "bob",
+    });
+    const david = await User.create({
+        email: "david@example.com",
+        username: "david",
+    });
+
+    const posts = await Post.create([{
+        author: alice._id,
         message: "Hello, World!",
-        sender: "alice@example.com",
-    });
-
-    const secondPost = await Post.create({
+    }, {
+        author: bob._id,
         message: "This is a test post",
-        sender: "bob@example.com",
-    });
+    }]);
 
     await Comment.create([
         {
+            author: bob._id,
             message: "Great first post!",
-            post: firstPost._id,
-            sender: "charlie@example.com",
+            post: posts[0]._id,
         },
         {
+            author: david._id,
             message: "Welcome to the platform!",
-            post: firstPost._id,
-            sender: "david@example.com",
+            post: posts[0]._id,
         },
         {
+            author: alice._id,
             message: "Nice test post, Bob!",
-            post: secondPost._id,
-            sender: "alice@example.com",
+            post: posts[1]._id,
         },
     ]);
 

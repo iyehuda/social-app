@@ -1,5 +1,9 @@
-import { Model, RootFilterQuery } from "mongoose";
+import { Model, MongooseError, RootFilterQuery } from "mongoose";
 import { Request, Response } from "express";
+import { MongoServerError } from "mongodb";
+
+type WrappedMongooseError = MongooseError & { cause: MongoServerError };
+const DuplicateKeyErrorCode = 11000;
 
 export default class BaseController<T> {
     private model: Model<T>;
@@ -9,9 +13,17 @@ export default class BaseController<T> {
     }
 
     async create(req: Request, res: Response) {
-        const item = await this.model.create(req.body);
+        try {
+            const item = await this.model.create(req.body);
 
-        res.status(201).json(item);
+            res.status(201).json(item);
+        } catch (error) {
+            if (error instanceof MongooseError && (error as WrappedMongooseError).cause.code === DuplicateKeyErrorCode) {
+                res.status(429).json({ error: error.message });
+            } else {
+                throw error;
+            }
+        }
     }
 
     async getItems(req: Request, res: Response) {

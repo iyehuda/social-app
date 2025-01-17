@@ -4,7 +4,7 @@ Content-Type: application/json
 
 {
     "message": "This is a test post",
-    "sender": "testuser@example.com"
+    "author": "testuser@example.com"
 }
 
 ###
@@ -19,8 +19,8 @@ GET http://localhost:3000/posts/6738b7b2944556561a86110a
 
 ###
 
-# Get posts by sender
-GET http://localhost:3000/posts?sender=testuser@example.com
+# Get posts by author
+GET http://localhost:3000/posts?author=testuser@example.com
 
 ###
 
@@ -41,7 +41,7 @@ Content-Type: application/json
 {
   "post": "6738b7b2944556561a86110a",
   "message": "This is a test comment",
-  "sender": "commenter@example.com"
+  "author": "commenter@example.com"
 }
 
 ###
@@ -51,15 +51,15 @@ GET http://localhost:3000/comments
 
 ###
 # Get comments for a specific post
-GET http://localhost:3000/comments?post=6738b7b2944556561a86110a
+GET http://localhost:3000/comments?post=678978cff1f71e3b0dd7bb45
 
 ###
-# Get comments by a specific sender
-GET http://localhost:3000/comments?sender=charlie@example.com
+# Get comments by a specific author
+GET http://localhost:3000/comments?author=678978cff1f71e3b0dd7bb43
 
 ###
 # Get a single comment by ID
-GET http://localhost:3000/comments/67390276d8eff8c8bf2b4a88
+GET http://localhost:3000/comments/678978cff1f71e3b0dd7bb4c
 
 ###
 # Update a comment

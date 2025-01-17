@@ -1,6 +1,7 @@
 import Comment, { IComment } from "../src/models/comment";
 import Post, { IPost } from "../src/models/post";
 import { Teardown, createDatabase, nonExistentId } from "./utils";
+import User, { IUser } from "../src/models/user";
 import { connect, disconnect } from "../src/db";
 import { HydratedDocument } from "mongoose";
 import { createApp } from "../src/app";
@@ -8,11 +9,16 @@ import request from "supertest";
 
 let teardown: Teardown;
 const app = createApp();
-const testPost = { message: "Hello World", sender: "John Doe" };
-const testCommentContent = { message: "Hello World", sender: "Adam Comment" };
-let testComment: typeof testCommentContent & { post: string };
+const testPostAuthor = { email: "john@example.org", username: "John Doe" };
+const testCommentAuthor = { email: "adam@example.org", username: "Adam Comment" };
+const testPostContent = { message: "Hello World" };
+const testCommentContent = { message: "Hello World" };
+let testComment: typeof testCommentContent & { author: string, post: string };
+let testPost: typeof testPostContent & { author: string };
 let testCommentDoc: HydratedDocument<IComment>;
 let testPostDoc: HydratedDocument<IPost>;
+let testPostAuthorDoc: HydratedDocument<IUser>;
+let testCommentAuthorDoc: HydratedDocument<IUser>;
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -21,6 +27,7 @@ beforeAll(async () => {
     await connect(dbConnectionString);
     await Comment.deleteMany({});
     await Post.deleteMany({});
+    await User.deleteMany({});
 });
 
 afterAll(async () => {
@@ -29,14 +36,19 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+    testPostAuthorDoc = await User.create(testPostAuthor);
+    testPost = { ...testPostContent, author: testPostAuthorDoc.id };
     testPostDoc = await Post.create(testPost);
-    testComment = { ...testCommentContent, post: testPostDoc.id };
+    testCommentAuthorDoc = await User.create(testCommentAuthor);
+    testComment = { ...testCommentContent, author: testCommentAuthorDoc.id, post: testPostDoc.id };
     testCommentDoc = await Comment.create(testComment);
 });
 
 afterEach(async () => {
     await testCommentDoc.deleteOne();
     await testPostDoc.deleteOne();
+    await testPostAuthorDoc.deleteOne();
+    await testCommentAuthorDoc.deleteOne();
 });
 
 describe("POST /comments", () => {
@@ -52,30 +64,49 @@ describe("POST /comments", () => {
         expect(response.status).toBe(201);
         expect(response.body).toMatchObject(testComment);
         expect(comment!.message).toBe(testComment.message);
-        expect(comment!.sender).toBe(testComment.sender);
+        expect(comment!.author.toString()).toBe(testComment.author);
         expect(comment!.post.toString()).toBe(testComment.post);
     });
 
-    it("should return 400 if message or sender is missing", async () => {
-        const commentWithoutSender = { message: "Hello World" };
-        const commentWithoutMessage = { sender: "John Doe" };
+    it("should return 404 if author or post does not exist", async () => {
+        const commentWithNonExistentAuthor = { ...testCommentContent, author: nonExistentId, post: testPostDoc.id };
+        const commentWithNonExistentPost = { ...testCommentContent, author: testPostAuthorDoc.id, post: nonExistentId };
 
-        const noSenderResponse = await request(app).post("/comments").send(commentWithoutSender);
+        const nonExistentAuthorResponse = await request(app).post("/comments").send(commentWithNonExistentAuthor);
+        const nonExistentPostResponse = await request(app).post("/comments").send(commentWithNonExistentPost);
+
+        expect(nonExistentAuthorResponse.status).toBe(404);
+        expect(nonExistentPostResponse.status).toBe(404);
+    });
+
+    it("should return 400 if message or author is missing", async () => {
+        const commentWithoutAuthor = { message: "Hello World" };
+        const commentWithoutMessage = { author: "John Doe" };
+
+        const noAuthorResponse = await request(app).post("/comments").send(commentWithoutAuthor);
         const noMessageResponse = await request(app).post("/comments").send(commentWithoutMessage);
 
-        expect(noSenderResponse.status).toBe(400);
+        expect(noAuthorResponse.status).toBe(400);
         expect(noMessageResponse.status).toBe(400);
     });
 
-    it("should return 400 if post does not exist", async () => {
+    it("should return 404 if post or user don't not exist", async () => {
+        const commentWithNonExistentAuthor = {
+            ...testCommentContent,
+            author: nonExistentId,
+            post: testPostDoc.id,
+        };
         const commentWithNonExistentPost = {
             ...testCommentContent,
+            author: testCommentAuthorDoc.id,
             post: nonExistentId,
         };
 
-        const response = await request(app).post("/comments").send(commentWithNonExistentPost);
+        const nonExistentAuthorResponse = await request(app).post("/comments").send(commentWithNonExistentAuthor);
+        const nonExistentPostResponse = await request(app).post("/comments").send(commentWithNonExistentPost);
 
-        expect(response.status).toBe(404);
+        expect(nonExistentAuthorResponse.status).toBe(404);
+        expect(nonExistentPostResponse.status).toBe(404);
     });
 });
 
@@ -87,15 +118,15 @@ describe("GET /comments", () => {
         expect(response.body).toMatchObject([{ ...testComment, id: testCommentDoc.id }]);
     });
 
-    it("should get comments by sender", async () => {
-        const response = await request(app).get(`/comments?sender=${testComment.sender}`);
+    it("should get comments by author", async () => {
+        const response = await request(app).get(`/comments?author=${testComment.author}`);
 
         expect(response.status).toBe(200);
         expect(response.body).toMatchObject([{ ...testComment, id: testCommentDoc.id }]);
     });
 
     it("should return an empty result if no comments found", async () => {
-        const response = await request(app).get("/comments?sender=Jane Doe");
+        const response = await request(app).get(`/comments?author=${nonExistentId}`);
         const comments = response.body as IComment[];
 
         expect(response.status).toBe(200);
