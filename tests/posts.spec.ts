@@ -16,9 +16,7 @@ let testPost: typeof testPostContent;
 let testPostDoc: HydratedDocument<IPost>;
 let testPostAuthorDoc: HydratedDocument<IUser>;
 
-const generateJWT = (user: IUser) => {
-    return jwt.sign({ _id: user.id }, tokenSecret!, { expiresIn: "1h" });
-};
+const generateJWT = (user: IUser) => jwt.sign({ _id: user.id }, tokenSecret, { expiresIn: "1h" });
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -36,7 +34,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
     testPostAuthorDoc = await User.create(testPostAuthor);
-    testPost = { ...testPostContent};
+    testPost = { ...testPostContent };
     testPostDoc = await Post.create({ ...testPost, author: testPostAuthorDoc.id });
 });
 
@@ -67,7 +65,7 @@ describe("POST /posts", () => {
     });
 
     it("should return 401 if author did not logged in", async () => {
-        const postWithNonExistentAuthor = { ...testPostContent};
+        const postWithNonExistentAuthor = { ...testPostContent };
 
         const response = await request(app)
             .post("/posts")

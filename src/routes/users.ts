@@ -79,7 +79,7 @@ const updateUserSchema = {
  */
 userRouter
     .route("/")
-    .get(celebrate(getUsersSchema), controller.getItems.bind(controller))
+    .get(celebrate(getUsersSchema), controller.getItems.bind(controller));
 
 /**
  * @swagger

@@ -9,8 +9,8 @@ import { string } from "joi";
 let teardown: Teardown;
 let testUserDoc: HydratedDocument<IUser>;
 const app = createApp();
-const testUser = { email: "test@example.com", username: "testuser", password: "password123"};
-const authTestUser = { email: "test@example.com", username: "testuser", password: "password123"};
+const testUser = { email: "test@example.com", username: "testuser", password: "password123" };
+const authTestUser = { email: "test@example.com", username: "testuser", password: "password123" };
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -151,16 +151,13 @@ describe("DELETE /users/:id", () => {
     });
 });
 
-
 describe("Auth Tests", () => {
-
     test("Auth test login", async () => {
-
         await request(app).post("/auth/register").send(authTestUser);
         const response = await request(app).post("/auth/login").send(authTestUser);
         expect(response.statusCode).toBe(200);
-        const accessToken = response.body.accessToken;
-        const refreshToken = response.body.refreshToken;
+        const { accessToken } = response.body;
+        const { refreshToken } = response.body;
         expect(accessToken).toBeDefined();
         expect(refreshToken).toBeDefined();
         expect(response.body._id).toBeDefined();
@@ -169,8 +166,8 @@ describe("Auth Tests", () => {
     test("Check tokens are not the same", async () => {
         const response = await request(app).post("/auth/login").send(authTestUser);
         expect(response.statusCode).toBe(200);
-        const accessToken = response.body.accessToken;
-        const refreshToken = response.body.refreshToken;
+        const { accessToken } = response.body;
+        const { refreshToken } = response.body;
 
         const response2 = await request(app).post("/auth/login").send(authTestUser);
         expect(response2.statusCode).toBe(200);
@@ -198,7 +195,7 @@ describe("Auth Tests", () => {
     test("Auth test refresh token", async () => {
         const response = await request(app).post("/auth/login").send(authTestUser);
         expect(response.statusCode).toBe(200);
-        const refreshToken = response.body.refreshToken;
+        const { refreshToken } = response.body;
 
         const response2 = await request(app).post("/auth/refresh").send({ refreshToken });
         expect(response2.statusCode).toBe(200);
@@ -207,12 +204,11 @@ describe("Auth Tests", () => {
     });
 
     test("Auth test logout", async () => {
-    const loginResponse = await request(app).post("/auth/login").send(authTestUser);
-    expect(loginResponse.statusCode).toBe(200);
-    const refreshToken = loginResponse.body.refreshToken;
+        const loginResponse = await request(app).post("/auth/login").send(authTestUser);
+        expect(loginResponse.statusCode).toBe(200);
+        const { refreshToken } = loginResponse.body;
 
-    const logoutResponse = await request(app).post("/auth/logout").send({ refreshToken });
-    expect(logoutResponse.statusCode).toBe(200);
-});
-
+        const logoutResponse = await request(app).post("/auth/logout").send({ refreshToken });
+        expect(logoutResponse.statusCode).toBe(200);
+    });
 });

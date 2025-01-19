@@ -1,7 +1,7 @@
 import express from "express";
 const authRouter = express.Router();
 import authController from "../controllers/auth";
-import { celebrate, Segments } from "celebrate";
+import { Segments, celebrate } from "celebrate";
 import Joi from "joi";
 
 /**
@@ -85,7 +85,7 @@ const registeredUserSchema = {
     [Segments.BODY]: Joi.object({
         email: Joi.string().email().required(),
         username: Joi.string().required(),
-        password: Joi.string().required()
+        password: Joi.string().required(),
     }),
 };
 authRouter.post("/register", celebrate(registeredUserSchema), authController.register);

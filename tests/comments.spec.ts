@@ -22,9 +22,7 @@ let testPostDoc: HydratedDocument<IPost>;
 let testPostAuthorDoc: HydratedDocument<IUser>;
 let testCommentAuthorDoc: HydratedDocument<IUser>;
 
-const generateJWT = (user: IUser) => {
-    return jwt.sign({ _id: user.id }, tokenSecret!, { expiresIn: "1h" });
-};
+const generateJWT = (user: IUser) => jwt.sign({ _id: user.id }, tokenSecret, { expiresIn: "1h" });
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
