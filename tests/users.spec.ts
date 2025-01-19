@@ -4,11 +4,13 @@ import { connect, disconnect } from "../src/db";
 import { HydratedDocument } from "mongoose";
 import { createApp } from "../src/app";
 import request from "supertest";
+import { string } from "joi";
 
 let teardown: Teardown;
 let testUserDoc: HydratedDocument<IUser>;
 const app = createApp();
-const testUser = { email: "test@example.com", username: "testuser", password: "password123" };
+const testUser = { email: "test@example.com", username: "testuser", password: "password123"};
+const authTestUser = { email: "test@example.com", username: "testuser", password: "password123"};
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -147,4 +149,70 @@ describe("DELETE /users/:id", () => {
 
         expect(response.status).toBe(404);
     });
+});
+
+
+describe("Auth Tests", () => {
+
+    test("Auth test login", async () => {
+
+        await request(app).post("/auth/register").send(authTestUser);
+        const response = await request(app).post("/auth/login").send(authTestUser);
+        expect(response.statusCode).toBe(200);
+        const accessToken = response.body.accessToken;
+        const refreshToken = response.body.refreshToken;
+        expect(accessToken).toBeDefined();
+        expect(refreshToken).toBeDefined();
+        expect(response.body._id).toBeDefined();
+    });
+
+    test("Check tokens are not the same", async () => {
+        const response = await request(app).post("/auth/login").send(authTestUser);
+        expect(response.statusCode).toBe(200);
+        const accessToken = response.body.accessToken;
+        const refreshToken = response.body.refreshToken;
+
+        const response2 = await request(app).post("/auth/login").send(authTestUser);
+        expect(response2.statusCode).toBe(200);
+        const accessToken2 = response2.body.accessToken;
+        const refreshToken2 = response2.body.refreshToken;
+
+        expect(accessToken).not.toBe(accessToken2);
+        expect(refreshToken).not.toBe(refreshToken2);
+    });
+
+    test("Auth test login fail", async () => {
+        const response = await request(app).post("/auth/login").send({
+            email: authTestUser.email,
+            password: "sdfsd",
+        });
+        expect(response.statusCode).not.toBe(200);
+
+        const response2 = await request(app).post("/auth/login").send({
+            email: "dsfasd",
+            password: "sdfsd",
+        });
+        expect(response2.statusCode).not.toBe(200);
+    });
+
+    test("Auth test refresh token", async () => {
+        const response = await request(app).post("/auth/login").send(authTestUser);
+        expect(response.statusCode).toBe(200);
+        const refreshToken = response.body.refreshToken;
+
+        const response2 = await request(app).post("/auth/refresh").send({ refreshToken });
+        expect(response2.statusCode).toBe(200);
+        expect(response2.body.accessToken).toBeDefined();
+        expect(response2.body.refreshToken).toBeDefined();
+    });
+
+    test("Auth test logout", async () => {
+    const loginResponse = await request(app).post("/auth/login").send(authTestUser);
+    expect(loginResponse.statusCode).toBe(200);
+    const refreshToken = loginResponse.body.refreshToken;
+
+    const logoutResponse = await request(app).post("/auth/logout").send({ refreshToken });
+    expect(logoutResponse.statusCode).toBe(200);
+});
+
 });
