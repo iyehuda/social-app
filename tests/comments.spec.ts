@@ -6,11 +6,13 @@ import { connect, disconnect } from "../src/db";
 import { HydratedDocument } from "mongoose";
 import { createApp } from "../src/app";
 import request from "supertest";
+import jwt from "jsonwebtoken";
+import { tokenSecret } from "../src/config";
 
 let teardown: Teardown;
 const app = createApp();
-const testPostAuthor = { email: "john@example.org", username: "John Doe" };
-const testCommentAuthor = { email: "adam@example.org", username: "Adam Comment" };
+const testPostAuthor = { email: "john@example.org", username: "John Doe", password: "password123" };
+const testCommentAuthor = { email: "adam@example.org", username: "Adam Comment", password: "password123" };
 const testPostContent = { message: "Hello World" };
 const testCommentContent = { message: "Hello World" };
 let testComment: typeof testCommentContent & { author: string, post: string };
@@ -19,6 +21,10 @@ let testCommentDoc: HydratedDocument<IComment>;
 let testPostDoc: HydratedDocument<IPost>;
 let testPostAuthorDoc: HydratedDocument<IUser>;
 let testCommentAuthorDoc: HydratedDocument<IUser>;
+
+const generateJWT = (user: IUser) => {
+    return jwt.sign({ _id: user.id }, tokenSecret!, { expiresIn: "1h" });
+};
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -57,56 +63,44 @@ describe("POST /comments", () => {
     });
 
     it("should create a new comment", async () => {
-        const response = await request(app).post("/comments").send(testComment);
+        const token = generateJWT(testCommentAuthorDoc);
+        const response = await request(app)
+            .post("/comments")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ message: testComment.message, post: testComment.post });
         const body = response.body as IComment;
         const comment = await Comment.findById(body.id);
 
         expect(response.status).toBe(201);
-        expect(response.body).toMatchObject(testComment);
+        expect(response.body.message).toBe(testComment.message);
         expect(comment!.message).toBe(testComment.message);
-        expect(comment!.author.toString()).toBe(testComment.author);
+        expect(comment!.author.toString()).toBe(testCommentAuthorDoc.id);
         expect(comment!.post.toString()).toBe(testComment.post);
     });
 
-    it("should return 404 if author or post does not exist", async () => {
-        const commentWithNonExistentAuthor = { ...testCommentContent, author: nonExistentId, post: testPostDoc.id };
-        const commentWithNonExistentPost = { ...testCommentContent, author: testPostAuthorDoc.id, post: nonExistentId };
+    it("should return 404 if post does not exist", async () => {
+        const token = generateJWT(testCommentAuthorDoc);
+        const response = await request(app)
+            .post("/comments")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ message: testComment.message, post: nonExistentId });
 
-        const nonExistentAuthorResponse = await request(app).post("/comments").send(commentWithNonExistentAuthor);
-        const nonExistentPostResponse = await request(app).post("/comments").send(commentWithNonExistentPost);
-
-        expect(nonExistentAuthorResponse.status).toBe(404);
-        expect(nonExistentPostResponse.status).toBe(404);
+        expect(response.status).toBe(404);
     });
 
-    it("should return 400 if message or author is missing", async () => {
-        const commentWithoutAuthor = { message: "Hello World" };
-        const commentWithoutMessage = { author: "John Doe" };
+    it("should return 400 if message or post is missing", async () => {
+        const token = generateJWT(testCommentAuthorDoc);
+        const noMessageResponse = await request(app)
+            .post("/comments")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ post: testPostDoc.id });
+        const noPostResponse = await request(app)
+            .post("/comments")
+            .set("Authorization", `Bearer ${token}`)
+            .send({ message: "Hello World" });
 
-        const noAuthorResponse = await request(app).post("/comments").send(commentWithoutAuthor);
-        const noMessageResponse = await request(app).post("/comments").send(commentWithoutMessage);
-
-        expect(noAuthorResponse.status).toBe(400);
         expect(noMessageResponse.status).toBe(400);
-    });
-
-    it("should return 404 if post or user don't not exist", async () => {
-        const commentWithNonExistentAuthor = {
-            ...testCommentContent,
-            author: nonExistentId,
-            post: testPostDoc.id,
-        };
-        const commentWithNonExistentPost = {
-            ...testCommentContent,
-            author: testCommentAuthorDoc.id,
-            post: nonExistentId,
-        };
-
-        const nonExistentAuthorResponse = await request(app).post("/comments").send(commentWithNonExistentAuthor);
-        const nonExistentPostResponse = await request(app).post("/comments").send(commentWithNonExistentPost);
-
-        expect(nonExistentAuthorResponse.status).toBe(404);
-        expect(nonExistentPostResponse.status).toBe(404);
+        expect(noPostResponse.status).toBe(400);
     });
 });
 
@@ -151,30 +145,38 @@ describe("GET /comments/:id", () => {
 
 describe("PUT /comments/:id", () => {
     it("should update a comment by id", async () => {
+        const token = generateJWT(testCommentAuthorDoc);
         const commentUpdate = { message: "Updated Message" };
 
         const response = await request(app)
             .put(`/comments/${testCommentDoc.id}`)
+            .set("Authorization", `Bearer ${token}`)
             .send(commentUpdate);
 
         expect(response.status).toBe(200);
-        expect(response.body).toMatchObject({ ...testComment, ...commentUpdate });
+        expect(response.body.message).toBe(commentUpdate.message);
     });
 
     it("should return 400 if message is missing", async () => {
+        const token = generateJWT(testCommentAuthorDoc);
         const emptyCommentUpdate = {};
 
         const response = await request(app)
             .put(`/comments/${testCommentDoc.id}`)
+            .set("Authorization", `Bearer ${token}`)
             .send(emptyCommentUpdate);
 
         expect(response.status).toBe(400);
     });
 
     it("should return 404 if comment not found", async () => {
+        const token = generateJWT(testCommentAuthorDoc);
         const commentUpdate = { message: "Updated Message" };
 
-        const response = await request(app).put(`/comments/${nonExistentId}`).send(commentUpdate);
+        const response = await request(app)
+            .put(`/comments/${nonExistentId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send(commentUpdate);
 
         expect(response.status).toBe(404);
     });
@@ -182,7 +184,10 @@ describe("PUT /comments/:id", () => {
 
 describe("DELETE /comments/:id", () => {
     it("should delete a comment by id", async () => {
-        const response = await request(app).delete(`/comments/${testCommentDoc.id}`);
+        const token = generateJWT(testCommentAuthorDoc);
+        const response = await request(app)
+            .delete(`/comments/${testCommentDoc.id}`)
+            .set("Authorization", `Bearer ${token}`);
         const comment = await Comment.findById(testCommentDoc.id);
 
         expect(response.status).toBe(204);
@@ -190,7 +195,10 @@ describe("DELETE /comments/:id", () => {
     });
 
     it("should return 404 if comment not found", async () => {
-        const response = await request(app).delete(`/comments/${nonExistentId}`);
+        const token = generateJWT(testCommentAuthorDoc);
+        const response = await request(app)
+            .delete(`/comments/${nonExistentId}`)
+            .set("Authorization", `Bearer ${token}`);
 
         expect(response.status).toBe(404);
     });

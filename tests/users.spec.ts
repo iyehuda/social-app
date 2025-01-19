@@ -8,7 +8,7 @@ import request from "supertest";
 let teardown: Teardown;
 let testUserDoc: HydratedDocument<IUser>;
 const app = createApp();
-const testUser = { email: "test@example.com", username: "testuser" };
+const testUser = { email: "test@example.com", username: "testuser", password: "password123" };
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -26,20 +26,19 @@ afterAll(async () => {
 
 describe("POST /users", () => {
     it("should create a new user", async () => {
-        const newTestUser = { email: "test2@example.com", username: "testuser2" };
-        const response = await request(app).post("/users").send(newTestUser);
+        const newTestUser = { email: "test2@example.com", username: "testuser2", password: "password123" };
+        const newTestUserResponse = { email: "test2@example.com", username: "testuser2" };
+        const response = await request(app).post("/auth/register").send(newTestUser);
         const body = response.body as IUser;
-        const user = await User.findById(body.id);
+        const user = await User.findById(body._id);
 
-        expect(response.status).toBe(201);
-        expect(response.body).toMatchObject(newTestUser);
-        expect(user).toMatchObject(newTestUser);
-
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject(newTestUserResponse);
         await user!.deleteOne();
     });
 
     it("should return 409 if username or email already exists", async () => {
-        const response = await request(app).post("/users").send(testUser);
+        const response = await request(app).post("/auth/register").send(testUser);
 
         expect(response.status).toBe(409);
     });
@@ -47,7 +46,7 @@ describe("POST /users", () => {
     it("should return 400 if email is invalid", async () => {
         const userWithInvalidEmail = { email: "invalid-email", username: "testuser2" };
 
-        const noEmailResponse = await request(app).post("/users").send(userWithInvalidEmail);
+        const noEmailResponse = await request(app).post("/auth/register").send(userWithInvalidEmail);
 
         expect(noEmailResponse.status).toBe(400);
     });
@@ -56,8 +55,8 @@ describe("POST /users", () => {
         const userWithoutEmail = { username: "testuser2" };
         const userWithoutUsername = { email: "test2@example.com" };
 
-        const noEmailResponse = await request(app).post("/users").send(userWithoutEmail);
-        const noUsernameResponse = await request(app).post("/users").send(userWithoutUsername);
+        const noEmailResponse = await request(app).post("/auth/register").send(userWithoutEmail);
+        const noUsernameResponse = await request(app).post("/auth/register").send(userWithoutUsername);
 
         expect(noEmailResponse.status).toBe(400);
         expect(noUsernameResponse.status).toBe(400);
@@ -123,7 +122,7 @@ describe("PUT /users/:id", () => {
     });
 
     it("should return 409 if email already exists", async () => {
-        const newUser = { email: "new@example.com", username: "new" };
+        const newUser = { email: "new@example.com", username: "new", password: "password123" };
         const userUpdate = { email: newUser.email };
 
         const newUserDoc = await User.create(newUser);

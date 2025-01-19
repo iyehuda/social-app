@@ -5,14 +5,20 @@ import { connect, disconnect } from "../src/db";
 import { HydratedDocument } from "mongoose";
 import { createApp } from "../src/app";
 import request from "supertest";
+import jwt from "jsonwebtoken";
+import { tokenSecret } from "../src/config";
 
 let teardown: Teardown;
 const app = createApp();
-const testPostAuthor = { email: "john@example.org", username: "John Doe" };
+const testPostAuthor = { email: "john@example.org", username: "John Doe", password: "password123" };
 const testPostContent = { message: "Hello World" };
-let testPost: typeof testPostContent & { author: string };
+let testPost: typeof testPostContent;
 let testPostDoc: HydratedDocument<IPost>;
 let testPostAuthorDoc: HydratedDocument<IUser>;
+
+const generateJWT = (user: IUser) => {
+    return jwt.sign({ _id: user.id }, tokenSecret!, { expiresIn: "1h" });
+};
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -30,8 +36,8 @@ afterAll(async () => {
 
 beforeEach(async () => {
     testPostAuthorDoc = await User.create(testPostAuthor);
-    testPost = { ...testPostContent, author: testPostAuthorDoc.id };
-    testPostDoc = await Post.create(testPost);
+    testPost = { ...testPostContent};
+    testPostDoc = await Post.create({ ...testPost, author: testPostAuthorDoc.id });
 });
 
 afterEach(async () => {
@@ -45,34 +51,40 @@ describe("POST /posts", () => {
     });
 
     it("should create a new post", async () => {
-        const response = await request(app).post("/posts").send(testPost);
+        const token = generateJWT(testPostAuthorDoc);
+        const response = await request(app)
+            .post("/posts")
+            .set("Authorization", `Bearer ${token}`)
+            .send(testPost);
         const body = response.body as IPost;
         const post = await Post.findById(body.id);
 
         expect(response.status).toBe(201);
         expect(response.body).toMatchObject(testPost);
-        expect(post!.author.toString()).toBe(testPost.author);
         expect(post!.message).toBe(testPost.message);
 
         await post!.deleteOne();
     });
 
-    it("should return 404 if author does not exist", async () => {
-        const postWithNonExistentAuthor = { ...testPostContent, author: nonExistentId };
+    it("should return 401 if author did not logged in", async () => {
+        const postWithNonExistentAuthor = { ...testPostContent};
 
-        const response = await request(app).post("/posts").send(postWithNonExistentAuthor);
+        const response = await request(app)
+            .post("/posts")
+            .send(postWithNonExistentAuthor);
 
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(401);
     });
 
-    it("should return 400 if message or author is missing", async () => {
-        const postWithoutAuthor = { message: "Hello World" };
-        const postWithoutMessage = { author: "John Doe" };
+    it("should return 400 if message is missing", async () => {
+        const token = generateJWT(testPostAuthorDoc);
+        const postWithoutMessage = { author: testPostAuthorDoc.id };
 
-        const noAuthorResponse = await request(app).post("/posts").send(postWithoutAuthor);
-        const noMessageResponse = await request(app).post("/posts").send(postWithoutMessage);
+        const noMessageResponse = await request(app)
+            .post("/posts")
+            .set("Authorization", `Bearer ${token}`)
+            .send(postWithoutMessage);
 
-        expect(noAuthorResponse.status).toBe(400);
         expect(noMessageResponse.status).toBe(400);
     });
 });
@@ -86,7 +98,7 @@ describe("GET /posts", () => {
     });
 
     it("should get posts by author", async () => {
-        const response = await request(app).get(`/posts?author=${testPost.author}`);
+        const response = await request(app).get(`/posts?author=${testPostAuthorDoc.id}`);
 
         expect(response.status).toBe(200);
         expect(response.body).toMatchObject([{ ...testPost, id: testPostDoc.id }]);
@@ -118,35 +130,73 @@ describe("GET /posts/:id", () => {
 
 describe("PUT /posts/:id", () => {
     it("should update a post by id", async () => {
+        const token = generateJWT(testPostAuthorDoc);
         const postUpdate = { message: "Updated Message" };
 
-        const response = await request(app).put(`/posts/${testPostDoc.id}`).send(postUpdate);
+        const response = await request(app)
+            .put(`/posts/${testPostDoc.id}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send(postUpdate);
 
         expect(response.status).toBe(200);
         expect(response.body).toMatchObject({ ...testPost, ...postUpdate });
     });
 
     it("should return 400 if message is missing", async () => {
+        const token = generateJWT(testPostAuthorDoc);
         const emptyPostUpdate = {};
 
-        const response = await request(app).put(`/posts/${testPostDoc.id}`).send(emptyPostUpdate);
+        const response = await request(app)
+            .put(`/posts/${testPostDoc.id}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send(emptyPostUpdate);
 
         expect(response.status).toBe(400);
     });
 
     it("should return 404 if post not found", async () => {
+        const token = generateJWT(testPostAuthorDoc);
         const postUpdate = { message: "Updated Message" };
 
-        const response = await request(app).put(`/posts/${nonExistentId}`).send(postUpdate);
+        const response = await request(app)
+            .put(`/posts/${nonExistentId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send(postUpdate);
 
         expect(response.status).toBe(404);
     });
 
     it("should return 400 if post id is invalid", async () => {
+        const token = generateJWT(testPostAuthorDoc);
         const postUpdate = { message: "Updated Message" };
 
-        const response = await request(app).put(`/posts/${invalidId}`).send(postUpdate);
+        const response = await request(app)
+            .put(`/posts/${invalidId}`)
+            .set("Authorization", `Bearer ${token}`)
+            .send(postUpdate);
 
         expect(response.status).toBe(400);
+    });
+});
+
+describe("DELETE /posts/:id", () => {
+    it("should delete a post by id", async () => {
+        const token = generateJWT(testPostAuthorDoc);
+        const response = await request(app)
+            .delete(`/posts/${testPostDoc.id}`)
+            .set("Authorization", `Bearer ${token}`);
+        const post = await Post.findById(testPostDoc.id);
+
+        expect(response.status).toBe(204);
+        expect(post).toBeNull();
+    });
+
+    it("should return 404 if post not found", async () => {
+        const token = generateJWT(testPostAuthorDoc);
+        const response = await request(app)
+            .delete(`/posts/${nonExistentId}`)
+            .set("Authorization", `Bearer ${token}`);
+
+        expect(response.status).toBe(404);
     });
 });

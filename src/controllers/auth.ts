@@ -3,9 +3,22 @@ import userModel, { IUser } from "../models/user";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { Document } from 'mongoose';
+import { refreshTokenExpires, tokenExpires, tokenSecret } from "../config";
 
 const register = async (req: Request, res: Response) => {
     try {
+        const existingUserByEmail = await userModel.findOne({ email: req.body.email });
+        if (existingUserByEmail) {
+            res.status(409).send('Email already in use');
+            return;
+        }
+
+        const existingUserByUsername = await userModel.findOne({ username: req.body.username });
+        if (existingUserByUsername) {
+            res.status(409).send('Username already in use');
+            return;
+        }
+
         const password = req.body.password;
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
@@ -19,8 +32,8 @@ const register = async (req: Request, res: Response) => {
             email: user.email,
             _id: user._id
         });
-    } catch (err) {
-        res.status(400).send(err);
+    } catch (err: any) {
+        res.status(500).send('Server Error');
     }
 };
 
@@ -30,7 +43,7 @@ type tTokens = {
 }
 
 const generateToken = (userId: string): tTokens | null => {
-    if (!process.env.TOKEN_SECRET) {
+    if (!tokenSecret) {
         return null;
     }
     // generate token
@@ -39,15 +52,15 @@ const generateToken = (userId: string): tTokens | null => {
             _id: userId,
             random: random
         },
-        process.env.TOKEN_SECRET,
-        { expiresIn: process.env.TOKEN_EXPIRES });
+        tokenSecret,
+        { expiresIn: tokenExpires });
 
     const refreshToken = jwt.sign({
             _id: userId,
             random: random
         },
-        process.env.TOKEN_SECRET,
-        { expiresIn: process.env.REFRESH_TOKEN_EXPIRES });
+        tokenSecret,
+        { expiresIn: refreshTokenExpires });
     return {
         accessToken: accessToken,
         refreshToken: refreshToken
@@ -65,7 +78,7 @@ const login = async (req: Request, res: Response) => {
             res.status(400).send('wrong username or password');
             return;
         }
-        if (!process.env.TOKEN_SECRET) {
+        if (!tokenSecret) {
             res.status(500).send('Server Error');
             return;
         }
@@ -105,11 +118,11 @@ const verifyRefreshToken = (refreshToken: string | undefined) => {
             return;
         }
         //verify token
-        if (!process.env.TOKEN_SECRET) {
+        if (!tokenSecret) {
             reject("fail");
             return;
         }
-        jwt.verify(refreshToken, process.env.TOKEN_SECRET, async (err: any, payload: any) => {
+        jwt.verify(refreshToken, tokenSecret, async (err: any, payload: any) => {
             if (err) {
                 reject("fail");
                 return
@@ -193,12 +206,12 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
         res.status(401).send('Access Denied');
         return;
     }
-    if (!process.env.TOKEN_SECRET) {
+    if (!tokenSecret) {
         res.status(500).send('Server Error');
         return;
     }
 
-    jwt.verify(token, process.env.TOKEN_SECRET, (err, payload) => {
+    jwt.verify(token, tokenSecret, (err, payload) => {
         if (err) {
             res.status(401).send('Access Denied');
             return;
