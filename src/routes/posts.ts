@@ -162,11 +162,27 @@ postRouter
  *         description: Invalid post ID or post update details
  *       404:
  *         description: The post was not found
+ *   delete:
+ *     summary: Delete a post by ID
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       204:
+ *         description: The post was deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Post'
+ *       404:
+ *         description: The post was not found
+ *
  */
 postRouter
     .route("/:id")
     .all(celebrate(idParamSchema))
     .get(controller.getItemById.bind(controller))
-    .put(authMiddleware, celebrate(updatePostSchema), controller.updateItemById.bind(controller));
+    .put(authMiddleware, celebrate(updatePostSchema), controller.updateItemById.bind(controller))
+    .delete(authMiddleware, controller.deleteItemById.bind(controller));
 
 export default postRouter;
