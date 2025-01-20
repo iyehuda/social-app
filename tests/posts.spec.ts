@@ -1,16 +1,18 @@
-import Post, { IPost } from "../src/models/post";
-import { Teardown, createDatabase, invalidId, nonExistentId } from "./utils";
-import User, { IUser } from "../src/models/user";
-import { connect, disconnect } from "../src/db";
-import { HydratedDocument } from "mongoose";
-import { createApp } from "../src/app";
-import request from "supertest";
 import jwt from "jsonwebtoken";
+import { HydratedDocument } from "mongoose";
+import { Teardown, createDatabase, invalidId, nonExistentId } from "./utils";
+
+import request from "supertest";
+
+import { createApp } from "../src/app";
+import { connect, disconnect } from "../src/db";
 import { tokenSecret } from "../src/config";
+import Post, { IPost } from "../src/models/post";
+import User, { IUser } from "../src/models/user";
 
 let teardown: Teardown;
 const app = createApp();
-const testPostAuthor = { email: "john@example.org", username: "John Doe", password: "password123" };
+const testPostAuthor = { email: "john@example.org", password: "password123", username: "John Doe" };
 const testPostContent = { message: "Hello World" };
 let testPost: typeof testPostContent;
 let testPostDoc: HydratedDocument<IPost>;

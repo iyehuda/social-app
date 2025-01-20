@@ -12,9 +12,9 @@ export interface IUser extends Document {
 const userSchema = new Schema<IUser>(
     {
         email: { required: true, type: String, unique: [true, "email is already taken"] },
+        password: { required: true, type: String },
+        refreshToken: { default: [], type: [String] },
         username: { required: true, type: String, unique: [true, "username is already taken"] },
-        password: { type: String, required: true },
-        refreshToken: { type: [String], default: [] },
     },
     commonSchemaOptions(),
 );

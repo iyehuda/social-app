@@ -1,18 +1,20 @@
-import Comment, { IComment } from "../src/models/comment";
-import Post, { IPost } from "../src/models/post";
-import { Teardown, createDatabase, nonExistentId } from "./utils";
-import User, { IUser } from "../src/models/user";
-import { connect, disconnect } from "../src/db";
-import { HydratedDocument } from "mongoose";
 import { createApp } from "../src/app";
-import request from "supertest";
-import jwt from "jsonwebtoken";
 import { tokenSecret } from "../src/config";
+import { connect, disconnect } from "../src/db";
+import Comment, { IComment } from "../src/models/comment";
+
+import Post, { IPost } from "../src/models/post";
+import User, { IUser } from "../src/models/user";
+
+import { HydratedDocument } from "mongoose";
+import { Teardown, createDatabase, nonExistentId } from "./utils";
+import jwt from "jsonwebtoken";
+import request from "supertest";
 
 let teardown: Teardown;
 const app = createApp();
-const testPostAuthor = { email: "john@example.org", username: "John Doe", password: "password123" };
-const testCommentAuthor = { email: "adam@example.org", username: "Adam Comment", password: "password123" };
+const testPostAuthor = { email: "john@example.org", password: "password123", username: "John Doe" };
+const testCommentAuthor = { email: "adam@example.org", password: "password123", username: "Adam Comment" };
 const testPostContent = { message: "Hello World" };
 const testCommentContent = { message: "Hello World" };
 let testComment: typeof testCommentContent & { author: string, post: string };
@@ -70,7 +72,8 @@ describe("POST /comments", () => {
         const comment = await Comment.findById(body.id);
 
         expect(response.status).toBe(201);
-        expect(response.body.message).toBe(testComment.message);
+        const { message } = response.body;
+        expect(message).toBe(testComment.message);
         expect(comment!.message).toBe(testComment.message);
         expect(comment!.author.toString()).toBe(testCommentAuthorDoc.id);
         expect(comment!.post.toString()).toBe(testComment.post);
@@ -152,7 +155,8 @@ describe("PUT /comments/:id", () => {
             .send(commentUpdate);
 
         expect(response.status).toBe(200);
-        expect(response.body.message).toBe(commentUpdate.message);
+        const { message } = response.body;
+        expect(message).toBe(commentUpdate.message);
     });
 
     it("should return 400 if message is missing", async () => {

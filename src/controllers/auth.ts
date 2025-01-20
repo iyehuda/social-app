@@ -5,35 +5,41 @@ import jwt from "jsonwebtoken";
 import { Document } from "mongoose";
 import { refreshTokenExpires, tokenExpires, tokenSecret } from "../config";
 
+// eslint-disable-next-line max-statements
 const register = async (req: Request, res: Response) => {
     try {
         const existingUserByEmail = await userModel.findOne({ email: req.body.email });
         if (existingUserByEmail) {
-            res.status(409).send("Email already in use");
+            const CONFLICT_STATUS = 409;
+            res.status(CONFLICT_STATUS).send("Email already in use");
             return;
         }
 
         const existingUserByUsername = await userModel.findOne({ username: req.body.username });
         if (existingUserByUsername) {
-            res.status(409).send("Username already in use");
+            const CONFLICT_STATUS = 409;
+            res.status(CONFLICT_STATUS).send("Username already in use");
             return;
         }
 
         const { password } = req.body;
-        const salt = await bcrypt.genSalt(10);
+        const SALT_ROUNDS = 10;
+        const salt = await bcrypt.genSalt(SALT_ROUNDS);
+
         const hashedPassword = await bcrypt.hash(password, salt);
         const user = await userModel.create({
-            username: req.body.username,
             email: req.body.email,
             password: hashedPassword,
+            username: req.body.username,
         });
         res.status(200).send({
-            username: user.username,
-            email: user.email,
             _id: user._id,
+            email: user.email,
+            username: user.username,
         });
     } catch (err: any) {
-        res.status(500).send("Server Error");
+        const INTERNAL_SERVER_ERROR = 500;
+        res.status(INTERNAL_SERVER_ERROR).send("Server Error");
     }
 };
 
@@ -66,6 +72,7 @@ const generateToken = (userId: string): tTokens | null => {
         refreshToken,
     };
 };
+// eslint-disable-next-line max-statements
 const login = async (req: Request, res: Response) => {
     try {
         const user = await userModel.findOne({ email: req.body.email });
@@ -95,56 +102,56 @@ const login = async (req: Request, res: Response) => {
         await user.save();
         res.status(200).send(
             {
+                _id: user._id,
                 accessToken: tokens.accessToken,
                 refreshToken: tokens.refreshToken,
-                _id: user._id,
             });
     } catch (err) {
         res.status(400).send(err);
     }
 };
 
-type tUser = Document<unknown, {}, IUser> & IUser & Required<{
+type tUser = Document<unknown, unknown, IUser> & IUser & Required<{
     _id: string
 }> & {
     __v: number
 };
 const verifyRefreshToken = (refreshToken: string | undefined) => new Promise<tUser>((resolve, reject) => {
-    // Get refresh token from body
     if (!refreshToken) {
-        reject("fail");
+        reject(new Error("fail"));
         return;
     }
-    // Verify token
     if (!tokenSecret) {
-        reject("fail");
+        reject(new Error("fail"));
         return;
     }
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises,max-statements
     jwt.verify(refreshToken, tokenSecret, async (err: any, payload: any) => {
         if (err) {
-            reject("fail");
+            reject(new Error("fail"));
             return;
         }
-        // Get the user id from token
-        const userId = payload._id;
+        // eslint-disable-next-line no-use-before-define
+        const userId: Payload = payload._id;
         try {
-            // Get the user from the db
             const user = await userModel.findById(userId);
             if (!user) {
-                reject("fail");
+                reject(new Error("fail"));
                 return;
             }
             if (!user.refreshToken?.includes(refreshToken)) {
                 user.refreshToken = [];
                 await user.save();
-                reject("fail");
+                reject(new Error("fail"));
                 return;
             }
             const tokens = user.refreshToken.filter(token => token !== refreshToken);
             user.refreshToken = tokens;
 
             resolve(user);
+            // eslint-disable-next-line no-shadow
         } catch (err) {
+            // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
             reject("fail");
         }
     });
@@ -160,6 +167,7 @@ const logout = async (req: Request, res: Response) => {
     }
 };
 
+// eslint-disable-next-line max-statements
 const refresh = async (req: Request, res: Response) => {
     try {
         const user = await verifyRefreshToken(req.body.refreshToken);
@@ -180,11 +188,10 @@ const refresh = async (req: Request, res: Response) => {
         await user.save();
         res.status(200).send(
             {
+                _id: user._id,
                 accessToken: tokens.accessToken,
                 refreshToken: tokens.refreshToken,
-                _id: user._id,
             });
-        // Send new token
     } catch (err) {
         res.status(400).send("fail");
     }
@@ -194,22 +201,25 @@ interface Payload {
     _id: string
 }
 
+// eslint-disable-next-line max-statements
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const authorization = req.header("authorization");
     const token = authorization?.split(" ")[1];
 
+    const UNAUTHORIZED_STATUS = 401;
     if (!token) {
-        res.status(401).send("Access Denied");
+        res.status(UNAUTHORIZED_STATUS).send("Access Denied");
         return;
     }
     if (!tokenSecret) {
-        res.status(500).send("Server Error");
+        const INTERNAL_SERVER_ERROR = 500;
+        res.status(INTERNAL_SERVER_ERROR).send("Server Error");
         return;
     }
 
     jwt.verify(token, tokenSecret, (err, payload) => {
         if (err) {
-            res.status(401).send("Access Denied");
+            res.status(UNAUTHORIZED_STATUS).send("Access Denied");
             return;
         }
         req.params.userId = (payload as Payload)._id;
@@ -218,8 +228,8 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
 };
 
 export default {
-    register,
     login,
-    refresh,
     logout,
+    refresh,
+    register,
 };

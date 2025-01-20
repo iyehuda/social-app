@@ -1,4 +1,3 @@
-/* eslint-disable no-underscore-dangle */
 import { SchemaOptions } from "mongoose";
 
 export function commonSchemaOptions<DocType>(): SchemaOptions<DocType> {

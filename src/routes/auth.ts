@@ -1,8 +1,9 @@
-import express from "express";
-const authRouter = express.Router();
-import authController from "../controllers/auth";
 import { Segments, celebrate } from "celebrate";
 import Joi from "joi";
+import authController from "../controllers/auth";
+import express from "express";
+
+const authRouter = express.Router();
 
 /**
  * @swagger
@@ -84,8 +85,8 @@ import Joi from "joi";
 const registeredUserSchema = {
     [Segments.BODY]: Joi.object({
         email: Joi.string().email().required(),
-        username: Joi.string().required(),
         password: Joi.string().required(),
+        username: Joi.string().required(),
     }),
 };
 authRouter.post("/register", celebrate(registeredUserSchema), authController.register);

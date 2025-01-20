@@ -4,13 +4,12 @@ import { connect, disconnect } from "../src/db";
 import { HydratedDocument } from "mongoose";
 import { createApp } from "../src/app";
 import request from "supertest";
-import { string } from "joi";
 
 let teardown: Teardown;
 let testUserDoc: HydratedDocument<IUser>;
 const app = createApp();
-const testUser = { email: "test@example.com", username: "testuser", password: "password123" };
-const authTestUser = { email: "test@example.com", username: "testuser", password: "password123" };
+const testUser = { email: "test@example.com", password: "password123", username: "testuser" };
+const authTestUser = { email: "test@example.com", password: "password123", username: "testuser" };
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -28,11 +27,12 @@ afterAll(async () => {
 
 describe("POST /users", () => {
     it("should create a new user", async () => {
-        const newTestUser = { email: "test2@example.com", username: "testuser2", password: "password123" };
+        const newTestUser = { email: "test2@example.com", password: "password123", username: "testuser2" };
         const newTestUserResponse = { email: "test2@example.com", username: "testuser2" };
         const response = await request(app).post("/auth/register").send(newTestUser);
         const body = response.body as IUser;
-        const user = await User.findById(body._id);
+        const { _id } = body;
+        const user = await User.findById(_id);
 
         expect(response.status).toBe(200);
         expect(response.body).toMatchObject(newTestUserResponse);
@@ -124,7 +124,7 @@ describe("PUT /users/:id", () => {
     });
 
     it("should return 409 if email already exists", async () => {
-        const newUser = { email: "new@example.com", username: "new", password: "password123" };
+        const newUser = { email: "new@example.com", password: "password123", username: "new" };
         const userUpdate = { email: newUser.email };
 
         const newUserDoc = await User.create(newUser);
@@ -154,25 +154,22 @@ describe("DELETE /users/:id", () => {
 describe("Auth Tests", () => {
     test("Auth test login", async () => {
         await request(app).post("/auth/register").send(authTestUser);
-        const response = await request(app).post("/auth/login").send(authTestUser);
-        expect(response.statusCode).toBe(200);
-        const { accessToken } = response.body;
-        const { refreshToken } = response.body;
+        const { body: { _id, accessToken, refreshToken }, statusCode } = await request(app).post("/auth/login").send(authTestUser);
+        expect(statusCode).toBe(200);
         expect(accessToken).toBeDefined();
         expect(refreshToken).toBeDefined();
-        expect(response.body._id).toBeDefined();
+        expect(_id).toBeDefined();
     });
 
-    test("Check tokens are not the same", async () => {
-        const response = await request(app).post("/auth/login").send(authTestUser);
+    async function performLogin(user: typeof authTestUser) {
+        const response = await request(app).post("/auth/login").send(user);
         expect(response.statusCode).toBe(200);
-        const { accessToken } = response.body;
-        const { refreshToken } = response.body;
+        return response.body as { _id: string, accessToken: string, refreshToken: string };
+    }
 
-        const response2 = await request(app).post("/auth/login").send(authTestUser);
-        expect(response2.statusCode).toBe(200);
-        const accessToken2 = response2.body.accessToken;
-        const refreshToken2 = response2.body.refreshToken;
+    test("Check tokens are not the same", async () => {
+        const { accessToken, refreshToken } = await performLogin(authTestUser);
+        const { accessToken: accessToken2, refreshToken: refreshToken2 } = await performLogin(authTestUser);
 
         expect(accessToken).not.toBe(accessToken2);
         expect(refreshToken).not.toBe(refreshToken2);
@@ -199,8 +196,9 @@ describe("Auth Tests", () => {
 
         const response2 = await request(app).post("/auth/refresh").send({ refreshToken });
         expect(response2.statusCode).toBe(200);
-        expect(response2.body.accessToken).toBeDefined();
-        expect(response2.body.refreshToken).toBeDefined();
+        const { refreshToken: refreshToken1, accessToken } = response2.body;
+        expect(accessToken).toBeDefined();
+        expect(refreshToken1).toBeDefined();
     });
 
     test("Auth test logout", async () => {
