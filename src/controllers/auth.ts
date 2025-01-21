@@ -49,10 +49,6 @@ interface tTokens {
 }
 
 const generateToken = (userId: string): tTokens | null => {
-    if (!tokenSecret) {
-        return null;
-    }
-    // Generate token
     const random = Math.random().toString();
     const accessToken = jwt.sign({
         _id: userId,
@@ -74,88 +70,70 @@ const generateToken = (userId: string): tTokens | null => {
 };
 // eslint-disable-next-line max-statements
 const login = async (req: Request, res: Response) => {
-    try {
-        const user = await userModel.findOne({ email: req.body.email });
-        if (!user) {
-            res.status(400).send("wrong username or password");
-            return;
-        }
-        const validPassword = await bcrypt.compare(req.body.password, user.password);
-        if (!validPassword) {
-            res.status(400).send("wrong username or password");
-            return;
-        }
-        if (!tokenSecret) {
-            res.status(500).send("Server Error");
-            return;
-        }
-        // Generate token
-        const tokens = generateToken(user._id);
-        if (!tokens) {
-            res.status(500).send("Server Error");
-            return;
-        }
-        if (!user.refreshToken) {
-            user.refreshToken = [];
-        }
-        user.refreshToken.push(tokens.refreshToken);
-        await user.save();
-        res.status(200).send(
-            {
-                _id: user._id,
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken,
-            });
-    } catch (err) {
-        res.status(400).send(err);
+    const user = await userModel.findOne({ email: req.body.email });
+    if (!user) {
+        res.status(401).send("wrong username or password");
+        return;
     }
+    const validPassword = await bcrypt.compare(req.body.password, user.password);
+    if (!validPassword) {
+        res.status(401).send("wrong username or password");
+        return;
+    }
+
+    // Generate token
+    const tokens = generateToken(user._id);
+    if (!tokens) {
+        res.status(500).send("Server Error");
+        return;
+    }
+    if (!user.refreshToken) {
+        user.refreshToken = [];
+    }
+    user.refreshToken.push(tokens.refreshToken);
+    await user.save();
+    res.status(200).send(
+        {
+            _id: user._id,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+        });
 };
+
+interface Payload {
+    _id: string
+}
 
 type tUser = Document<unknown, unknown, IUser> & IUser & Required<{
     _id: string
 }> & {
     __v: number
 };
-const verifyRefreshToken = (refreshToken: string | undefined) => new Promise<tUser>((resolve, reject) => {
-    if (!refreshToken) {
-        reject(new Error("fail"));
-        return;
+const verifyRefreshToken = async (refreshToken: string | undefined): Promise<tUser> => {
+    if (!refreshToken || !tokenSecret) {
+        throw new Error("fail");
     }
-    if (!tokenSecret) {
-        reject(new Error("fail"));
-        return;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises,max-statements
-    jwt.verify(refreshToken, tokenSecret, async (err: any, payload: any) => {
-        if (err) {
-            reject(new Error("fail"));
-            return;
-        }
-        // eslint-disable-next-line no-use-before-define
-        const userId: Payload = payload._id;
-        try {
-            const user = await userModel.findById(userId);
-            if (!user) {
-                reject(new Error("fail"));
-                return;
-            }
-            if (!user.refreshToken?.includes(refreshToken)) {
-                user.refreshToken = [];
-                await user.save();
-                reject(new Error("fail"));
-                return;
-            }
-            const tokens = user.refreshToken.filter(token => token !== refreshToken);
-            user.refreshToken = tokens;
 
-            resolve(user);
-            // eslint-disable-next-line no-shadow
-        } catch (err) {
-            // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-            reject("fail");
+    const getUserFromToken = async (payload: Payload): Promise<tUser> => {
+        const user = await userModel.findById(payload._id);
+        if (!user || !user.refreshToken?.includes(refreshToken)) {
+            if (user) {
+                user.refreshToken = [];
+            }
+            await user?.save();
+            throw new Error("fail");
         }
-    });
-});
+        user.refreshToken = user.refreshToken.filter(token => token !== refreshToken);
+        return user;
+    };
+
+    try {
+        const payload = jwt.verify(refreshToken, tokenSecret) as Payload;
+        return await getUserFromToken(payload);
+    } catch (err) {
+        throw new Error("fail");
+    }
+};
 
 const logout = async (req: Request, res: Response) => {
     try {
@@ -177,49 +155,36 @@ const refresh = async (req: Request, res: Response) => {
         }
         const tokens = generateToken(user._id);
 
-        if (!tokens) {
-            res.status(500).send("Server Error");
-            return;
-        }
         if (!user.refreshToken) {
             user.refreshToken = [];
         }
-        user.refreshToken.push(tokens.refreshToken);
+        if (tokens) {
+            user.refreshToken.push(tokens.refreshToken);
+        }
         await user.save();
         res.status(200).send(
             {
                 _id: user._id,
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken,
+                accessToken: tokens?.accessToken ?? "",
+                refreshToken: tokens?.refreshToken ?? "",
             });
     } catch (err) {
         res.status(400).send("fail");
     }
 };
 
-interface Payload {
-    _id: string
-}
-
-// eslint-disable-next-line max-statements
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const authorization = req.header("authorization");
     const token = authorization?.split(" ")[1];
 
-    const UNAUTHORIZED_STATUS = 401;
     if (!token) {
-        res.status(UNAUTHORIZED_STATUS).send("Access Denied");
-        return;
-    }
-    if (!tokenSecret) {
-        const INTERNAL_SERVER_ERROR = 500;
-        res.status(INTERNAL_SERVER_ERROR).send("Server Error");
+        res.status(401).send("Access Denied");
         return;
     }
 
     jwt.verify(token, tokenSecret, (err, payload) => {
         if (err) {
-            res.status(UNAUTHORIZED_STATUS).send("Access Denied");
+            res.status(401).send("Access Denied");
             return;
         }
         req.params.userId = (payload as Payload)._id;

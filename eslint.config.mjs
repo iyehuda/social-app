@@ -44,7 +44,7 @@ export default tseslint.config(
             "new-cap": "off",
             "no-console": "off",
             "no-invalid-this": "off",
-            "no-magic-numbers": ["error", { ignore: [200, 201, 204, 404, 409, 1, 400, 500] }],
+            "no-magic-numbers": ["error", { ignore: [1, 200, 201, 204, 400, 401, 404, 409, 500] }],
             "no-negated-condition": "off",
             "one-var": ["error", "never"],
             "sort-imports": "off",
