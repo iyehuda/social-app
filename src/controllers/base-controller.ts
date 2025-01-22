@@ -41,6 +41,7 @@ export default class BaseController<T> {
 
     @DBHandler
     async create(req: Request, res: Response) {
+        req.body = { ...req.body as Record<string, unknown>, author: req.params.userId };
         const item = await this.model.create(req.body);
 
         res.status(201).json(item);

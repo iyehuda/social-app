@@ -52,12 +52,6 @@ const controller = new UsersController();
  *         email: "john@example.com"
  *         username: "john"
  */
-const newUserSchema = {
-    [Segments.BODY]: Joi.object({
-        email: Joi.string().email().required(),
-        username: Joi.string().required(),
-    }),
-};
 const getUsersSchema = {
     [Segments.QUERY]: Joi.object({}),
 };
@@ -82,31 +76,10 @@ const updateUserSchema = {
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/User'
- *   post:
- *     summary: Create a new user
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UserCreationDetails'
- *     responses:
- *       201:
- *         description: The newly created user
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
- *       400:
- *         description: Invalid user creation details (e.g. invalid email)
- *       409:
- *         description: The email or username is already taken
  */
 userRouter
     .route("/")
-    .get(celebrate(getUsersSchema), controller.getItems.bind(controller))
-    .post(celebrate(newUserSchema), controller.create.bind(controller));
+    .get(celebrate(getUsersSchema), controller.getItems.bind(controller));
 
 /**
  * @swagger

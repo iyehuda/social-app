@@ -1,7 +1,6 @@
 /* eslint-disable no-magic-numbers */
 /* eslint-disable max-lines-per-function */
 /* eslint-disable max-statements */
-/* eslint-disable no-underscore-dangle */
 
 import { connect, disconnect } from "../db";
 import Comment from "../models/comment";

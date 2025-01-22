@@ -3,6 +3,7 @@ import { idParamSchema, validObjectId } from "./utils";
 import Joi from "joi";
 import PostsController from "../controllers/posts";
 import { Router } from "express";
+import { authMiddleware } from "../controllers/auth";
 
 const postRouter = Router();
 const controller = new PostsController();
@@ -18,14 +19,10 @@ const controller = new PostsController();
  *     PostCreationDetails:
  *       type: object
  *       properties:
- *         author:
- *           type: string
- *           description: The post author user ID
  *         message:
  *           type: string
  *           description: The post message content
  *       example:
- *         author: "6738b7b2944556561a86110a"
  *         message: "Hello, world!"
  *     PostUpdateDetails:
  *       type: object
@@ -54,7 +51,6 @@ const controller = new PostsController();
  */
 const newPostSchema = {
     [Segments.BODY]: Joi.object({
-        author: Joi.string().custom(validObjectId).required(),
         message: Joi.string().required(),
     }),
 };
@@ -95,6 +91,8 @@ const updatePostSchema = {
  *   post:
  *     summary: Create a new post
  *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -116,7 +114,7 @@ const updatePostSchema = {
 postRouter
     .route("/")
     .get(celebrate(getPostsSchema), controller.getItems.bind(controller))
-    .post(celebrate(newPostSchema), controller.create.bind(controller));
+    .post(authMiddleware, celebrate(newPostSchema), controller.create.bind(controller));
 
 /**
  * @swagger
@@ -145,6 +143,8 @@ postRouter
  *   put:
  *     summary: Update a post by ID
  *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -162,11 +162,27 @@ postRouter
  *         description: Invalid post ID or post update details
  *       404:
  *         description: The post was not found
+ *   delete:
+ *     summary: Delete a post by ID
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       204:
+ *         description: The post was deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Post'
+ *       404:
+ *         description: The post was not found
+ *
  */
 postRouter
     .route("/:id")
     .all(celebrate(idParamSchema))
     .get(controller.getItemById.bind(controller))
-    .put(celebrate(updatePostSchema), controller.updateItemById.bind(controller));
+    .put(authMiddleware, celebrate(updatePostSchema), controller.updateItemById.bind(controller))
+    .delete(authMiddleware, controller.deleteItemById.bind(controller));
 
 export default postRouter;

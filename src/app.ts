@@ -7,6 +7,7 @@ import postRouter from "./routes/posts";
 import swaggerJSDoc from "swagger-jsdoc";
 import swaggerUI from "swagger-ui-express";
 import userRouter from "./routes/users";
+import authRouter from "./routes/auth";
 
 const apiSpecs = swaggerJSDoc({
     apis: ["src/routes/*.ts"],
@@ -32,6 +33,7 @@ export function createApp() {
     app.use("/users", userRouter);
     app.use("/posts", postRouter);
     app.use("/comments", commentRouter);
+    app.use("/auth", authRouter);
     app.use(errors());
 
     return app;

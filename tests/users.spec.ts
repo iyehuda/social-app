@@ -8,7 +8,8 @@ import request from "supertest";
 let teardown: Teardown;
 let testUserDoc: HydratedDocument<IUser>;
 const app = createApp();
-const testUser = { email: "test@example.com", username: "testuser" };
+const testUser = { email: "test@example.com", password: "password123", username: "testuser" };
+const authTestUser = { email: "test@example.com", password: "password123", username: "testuser" };
 
 beforeAll(async () => {
     const { dbConnectionString, closeDatabase } = await createDatabase();
@@ -26,20 +27,20 @@ afterAll(async () => {
 
 describe("POST /users", () => {
     it("should create a new user", async () => {
-        const newTestUser = { email: "test2@example.com", username: "testuser2" };
-        const response = await request(app).post("/users").send(newTestUser);
+        const newTestUser = { email: "test2@example.com", password: "password123", username: "testuser2" };
+        const newTestUserResponse = { email: "test2@example.com", username: "testuser2" };
+        const response = await request(app).post("/auth/register").send(newTestUser);
         const body = response.body as IUser;
-        const user = await User.findById(body.id);
+        const { _id } = body;
+        const user = await User.findById(_id);
 
-        expect(response.status).toBe(201);
-        expect(response.body).toMatchObject(newTestUser);
-        expect(user).toMatchObject(newTestUser);
-
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject(newTestUserResponse);
         await user!.deleteOne();
     });
 
     it("should return 409 if username or email already exists", async () => {
-        const response = await request(app).post("/users").send(testUser);
+        const response = await request(app).post("/auth/register").send(testUser);
 
         expect(response.status).toBe(409);
     });
@@ -47,7 +48,7 @@ describe("POST /users", () => {
     it("should return 400 if email is invalid", async () => {
         const userWithInvalidEmail = { email: "invalid-email", username: "testuser2" };
 
-        const noEmailResponse = await request(app).post("/users").send(userWithInvalidEmail);
+        const noEmailResponse = await request(app).post("/auth/register").send(userWithInvalidEmail);
 
         expect(noEmailResponse.status).toBe(400);
     });
@@ -56,8 +57,8 @@ describe("POST /users", () => {
         const userWithoutEmail = { username: "testuser2" };
         const userWithoutUsername = { email: "test2@example.com" };
 
-        const noEmailResponse = await request(app).post("/users").send(userWithoutEmail);
-        const noUsernameResponse = await request(app).post("/users").send(userWithoutUsername);
+        const noEmailResponse = await request(app).post("/auth/register").send(userWithoutEmail);
+        const noUsernameResponse = await request(app).post("/auth/register").send(userWithoutUsername);
 
         expect(noEmailResponse.status).toBe(400);
         expect(noUsernameResponse.status).toBe(400);
@@ -123,7 +124,7 @@ describe("PUT /users/:id", () => {
     });
 
     it("should return 409 if email already exists", async () => {
-        const newUser = { email: "new@example.com", username: "new" };
+        const newUser = { email: "new@example.com", password: "password123", username: "new" };
         const userUpdate = { email: newUser.email };
 
         const newUserDoc = await User.create(newUser);
@@ -147,5 +148,65 @@ describe("DELETE /users/:id", () => {
         const response = await request(app).delete(`/users/${nonExistentId}`);
 
         expect(response.status).toBe(404);
+    });
+});
+
+describe("Auth Tests", () => {
+    test("Auth test login", async () => {
+        await request(app).post("/auth/register").send(authTestUser);
+        const { body: { _id, accessToken, refreshToken }, statusCode } = await request(app).post("/auth/login").send(authTestUser);
+        expect(statusCode).toBe(200);
+        expect(accessToken).toBeDefined();
+        expect(refreshToken).toBeDefined();
+        expect(_id).toBeDefined();
+    });
+
+    async function performLogin(user: typeof authTestUser) {
+        const response = await request(app).post("/auth/login").send(user);
+        expect(response.statusCode).toBe(200);
+        return response.body as { _id: string, accessToken: string, refreshToken: string };
+    }
+
+    test("Check tokens are not the same", async () => {
+        const { accessToken, refreshToken } = await performLogin(authTestUser);
+        const { accessToken: accessToken2, refreshToken: refreshToken2 } = await performLogin(authTestUser);
+
+        expect(accessToken).not.toBe(accessToken2);
+        expect(refreshToken).not.toBe(refreshToken2);
+    });
+
+    test("Auth test login fail", async () => {
+        const response = await request(app).post("/auth/login").send({
+            email: authTestUser.email,
+            password: "sdfsd",
+        });
+        expect(response.statusCode).not.toBe(200);
+
+        const response2 = await request(app).post("/auth/login").send({
+            email: "dsfasd",
+            password: "sdfsd",
+        });
+        expect(response2.statusCode).not.toBe(200);
+    });
+
+    test("Auth test refresh token", async () => {
+        const response = await request(app).post("/auth/login").send(authTestUser);
+        expect(response.statusCode).toBe(200);
+        const { refreshToken } = response.body;
+
+        const response2 = await request(app).post("/auth/refresh").send({ refreshToken });
+        expect(response2.statusCode).toBe(200);
+        const { refreshToken: refreshToken1, accessToken } = response2.body;
+        expect(accessToken).toBeDefined();
+        expect(refreshToken1).toBeDefined();
+    });
+
+    test("Auth test logout", async () => {
+        const loginResponse = await request(app).post("/auth/login").send(authTestUser);
+        expect(loginResponse.statusCode).toBe(200);
+        const { refreshToken } = loginResponse.body;
+
+        const logoutResponse = await request(app).post("/auth/logout").send({ refreshToken });
+        expect(logoutResponse.statusCode).toBe(200);
     });
 });

@@ -3,6 +3,7 @@ import { idParamSchema, validObjectId } from "./utils";
 import CommentsController from "../controllers/comments";
 import Joi from "joi";
 import { Router } from "express";
+import { authMiddleware } from "../controllers/auth";
 
 const commentRouter = Router();
 const controller = new CommentsController();
@@ -18,9 +19,6 @@ const controller = new CommentsController();
  *     CommentCreationDetails:
  *       type: object
  *       properties:
- *         author:
- *           type: string
- *           description: The comment author user ID
  *         message:
  *           type: string
  *           description: The comment message content
@@ -28,7 +26,6 @@ const controller = new CommentsController();
  *           type: string
  *           description: The post ID this comment belongs to
  *       example:
- *         author: "6738b7b2944556561a86110a"
  *         message: "This is a great post!"
  *         post: "678978cff1f71e3b0dd7bb45"
  *     CommentUpdateDetails:
@@ -62,7 +59,6 @@ const controller = new CommentsController();
  */
 const newCommentSchema = {
     [Segments.BODY]: Joi.object({
-        author: Joi.string().custom(validObjectId).required(),
         message: Joi.string().required(),
         post: Joi.string().custom(validObjectId).required(),
     }),
@@ -110,6 +106,8 @@ const updateCommentSchema = {
  *   post:
  *     summary: Create a new comment
  *     tags: [Comments]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -131,7 +129,7 @@ const updateCommentSchema = {
 commentRouter
     .route("/")
     .get(celebrate(getCommentsSchema), controller.getItems.bind(controller))
-    .post(celebrate(newCommentSchema), controller.create.bind(controller));
+    .post(authMiddleware, celebrate(newCommentSchema), controller.create.bind(controller));
 
 /**
  * @swagger
@@ -160,6 +158,8 @@ commentRouter
  *   put:
  *     summary: Update a comment by ID
  *     tags: [Comments]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -180,6 +180,8 @@ commentRouter
  *   delete:
  *     summary: Delete a comment by ID
  *     tags: [Comments]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       204:
  *         description: The comment was deleted successfully
@@ -196,7 +198,7 @@ commentRouter
     .route("/:id")
     .all(celebrate(idParamSchema))
     .get(controller.getItemById.bind(controller))
-    .put(celebrate(updateCommentSchema), controller.updateItemById.bind(controller))
-    .delete(controller.deleteItemById.bind(controller));
+    .put(authMiddleware, celebrate(updateCommentSchema), controller.updateItemById.bind(controller))
+    .delete(authMiddleware, controller.deleteItemById.bind(controller));
 
 export default commentRouter;
